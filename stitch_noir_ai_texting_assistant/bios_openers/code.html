@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Aura AI - Bio &amp; Opener Lab</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #080808;
+    }
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+    /* Custom Matte Depth */
+    .plate-level-1 { background-color: #121212; border: 1px solid #1C1C1C; }
+    .plate-level-2 { background-color: #1C1C1C; border: 1px solid #262626; }
+    .matte-shadow { box-shadow: 0 20px 40px -10px rgba(0,0,0,0.4); }
+  </style>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "secondary-fixed": "#d8e2ff",
+            "on-primary": "#3f008d",
+            "secondary-fixed-dim": "#adc6ff",
+            "on-secondary-fixed": "#001a42",
+            "tertiary": "#ffb2b7",
+            "outline-variant": "#4a4455",
+            "on-surface-variant": "#ccc3d7",
+            "on-surface": "#e8e0ee",
+            "primary-fixed-dim": "#d3bbff",
+            "on-secondary-container": "#e6ecff",
+            "tertiary-container": "#b20035",
+            "background": "#15121b",
+            "error-container": "#93000a",
+            "on-primary-container": "#dac5ff",
+            "secondary": "#adc6ff",
+            "surface-variant": "#37333e",
+            "surface-dim": "#15121b",
+            "on-tertiary": "#67001b",
+            "tertiary-fixed": "#ffdadb",
+            "inverse-on-surface": "#332f39",
+            "on-tertiary-container": "#ffbec1",
+            "on-tertiary-fixed": "#40000d",
+            "surface-container-low": "#1d1a24",
+            "surface-container-lowest": "#100d16",
+            "surface-bright": "#3c3742",
+            "outline": "#958da1",
+            "on-primary-fixed-variant": "#5b00c5",
+            "surface-container": "#221e28",
+            "surface": "#15121b",
+            "primary": "#d3bbff",
+            "surface-tint": "#d3bbff",
+            "surface-container-highest": "#37333e",
+            "on-error": "#690005",
+            "on-primary-fixed": "#250059",
+            "on-background": "#e8e0ee",
+            "secondary-container": "#0566d9",
+            "on-tertiary-fixed-variant": "#92002a",
+            "on-secondary": "#002e6a",
+            "inverse-primary": "#7331df",
+            "tertiary-fixed-dim": "#ffb2b7",
+            "primary-container": "#6d28d9",
+            "surface-container-high": "#2c2833",
+            "error": "#ffb4ab",
+            "primary-fixed": "#ebddff",
+            "on-error-container": "#ffdad6",
+            "inverse-surface": "#e8e0ee",
+            "on-secondary-fixed-variant": "#004395"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "margin-mobile": "20px",
+            "sm": "8px",
+            "xl": "40px",
+            "margin-desktop": "64px",
+            "lg": "24px",
+            "gutter": "16px",
+            "md": "16px",
+            "unit": "4px",
+            "xs": "4px"
+          },
+          "fontSize": {
+            "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+            "body-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0em", "fontWeight": "400"}],
+            "headline-md": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+            "body-lg": ["16px", {"lineHeight": "24px", "letterSpacing": "0em", "fontWeight": "400"}],
+            "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+            "headline-lg-mobile": ["28px", {"lineHeight": "34px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+            "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="text-on-background bg-background min-h-screen flex flex-col md:flex-row overflow-hidden">
+<!-- Side Navigation (Shared Component) -->
+<aside class="hidden md:flex flex-col justify-between py-lg px-md fixed left-0 h-full w-60 bg-surface border-r border-surface-variant">
+<div class="space-y-xl">
+<div class="flex flex-col">
+<span class="text-headline-md font-bold text-primary tracking-tighter">Aura Pro</span>
+<span class="text-label-md text-on-surface-variant uppercase tracking-widest mt-xs">Quiet Luxury Tech</span>
+</div>
+<nav class="flex flex-col gap-sm">
+<a class="flex items-center gap-md py-md px-md rounded-lg transition-all duration-200 text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface" href="#">
+<span class="material-symbols-outlined" data-icon="chat_bubble">chat_bubble</span>
+<span class="text-body-md font-medium">Chat</span>
+</a>
+<a class="flex items-center gap-md py-md px-md rounded-lg transition-all duration-200 text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface" href="#">
+<span class="material-symbols-outlined" data-icon="tune">tune</span>
+<span class="text-body-md font-medium">Tones</span>
+</a>
+<a class="flex items-center gap-md py-md px-md rounded-lg transition-all duration-200 text-primary font-bold border-r-2 border-primary bg-surface-container-high" href="#">
+<span class="material-symbols-outlined" data-icon="person_edit">person_edit</span>
+<span class="text-body-md">Bios</span>
+</a>
+<a class="flex items-center gap-md py-md px-md rounded-lg transition-all duration-200 text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface" href="#">
+<span class="material-symbols-outlined" data-icon="timer">timer</span>
+<span class="text-body-md font-medium">History</span>
+</a>
+</nav>
+</div>
+<div class="space-y-md">
+<button class="w-full bg-primary-container text-on-primary-container py-md rounded-lg font-bold text-body-md hover:brightness-110 active:scale-95 transition-all">
+        Upgrade to Elite
+      </button>
+<div class="flex items-center gap-md py-md px-md text-on-surface-variant">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="text-body-md font-medium">Settings</span>
+</div>
+</div>
+</aside>
+<!-- Mobile Top Bar -->
+<header class="md:hidden flex justify-between items-center w-full px-margin-mobile h-16 bg-background border-b border-surface-variant fixed top-0 z-50">
+<span class="text-headline-md font-bold text-on-background tracking-tighter">Aura AI</span>
+<div class="flex gap-md">
+<span class="material-symbols-outlined text-primary" data-icon="history">history</span>
+<span class="material-symbols-outlined text-primary" data-icon="settings">settings</span>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="flex-1 md:ml-60 pt-16 md:pt-0 pb-24 md:pb-0 overflow-y-auto">
+<div class="max-w-6xl mx-auto px-margin-mobile md:px-margin-desktop py-lg">
+<!-- Header Section -->
+<section class="mb-xl">
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-lg">
+<div>
+<h1 class="font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-background">Identity Lab</h1>
+<p class="text-body-md text-on-surface-variant mt-xs">Engineer your digital persona with surgical precision.</p>
+</div>
+<!-- Mode Toggle -->
+<div class="plate-level-2 p-1 rounded-xl flex gap-1 w-full md:w-auto">
+<button class="flex-1 md:flex-none px-lg py-sm rounded-lg bg-surface-container-highest text-primary font-bold text-label-md">
+              Bio Writer
+            </button>
+<button class="flex-1 md:flex-none px-lg py-sm rounded-lg text-on-surface-variant font-medium text-label-md hover:bg-surface-container transition-colors">
+              Opener Generator
+            </button>
+</div>
+</div>
+</section>
+<!-- Bento Grid Layout -->
+<div class="grid grid-cols-1 md:grid-cols-12 gap-lg">
+<!-- Input Panel -->
+<div class="md:col-span-5 flex flex-col gap-lg">
+<div class="plate-level-1 p-lg rounded-xl flex flex-col gap-md">
+<div class="flex justify-between items-center">
+<label class="text-label-md text-on-surface-variant uppercase tracking-widest">Input Source</label>
+<span class="text-label-md text-primary font-bold">42/500</span>
+</div>
+<textarea class="w-full h-48 bg-surface-container-lowest border border-surface-variant rounded-lg p-md text-body-md text-on-surface placeholder-on-surface-variant focus:outline-none focus:border-secondary transition-colors resize-none" placeholder="Describe your interests, vibe, or paste a bio you want to remix...">Avid traveler, espresso enthusiast, and amateur chess player. Looking for someone to beat me at Queen's Gambit.</textarea>
+<div class="flex flex-wrap gap-sm">
+<div class="bg-surface-container-high px-md py-xs rounded-full flex items-center gap-xs">
+<span class="material-symbols-outlined text-[14px]" data-icon="coffee">coffee</span>
+<span class="text-label-md">Espresso</span>
+</div>
+<div class="bg-surface-container-high px-md py-xs rounded-full flex items-center gap-xs">
+<span class="material-symbols-outlined text-[14px]" data-icon="travel_explore">travel_explore</span>
+<span class="text-label-md">Travel</span>
+</div>
+</div>
+</div>
+<div class="plate-level-1 p-lg rounded-xl flex flex-col gap-md">
+<label class="text-label-md text-on-surface-variant uppercase tracking-widest">Platform DNA</label>
+<div class="grid grid-cols-3 gap-sm">
+<button class="flex flex-col items-center justify-center gap-xs py-md border border-primary rounded-lg bg-primary-container/10">
+<img alt="Tinder" class="w-6 h-6 grayscale brightness-200" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBKbGa1qA7CRjgh7oaS8ocpyU-xkjhKgqDFrpgJyJnwZuoio5w6nGwA6iktB8I5OfN8_bc6N9INCBrE1jzEXQwyWpqRacZRT7oc63vXSKlWGdRRE-NJmQLbHM1Qak7P0DdJXcIoH89hxRGERsLNz7GTBKjLofot4auJ8t9km-sWK2ewqKTvNjsQvMwrZSBUByi81L7BpzYP0prIJRD0LoPfOAadrPtzjgAv53WbWELjJoY7oiH1-aDS4WQUIBLltyYB1iw6i_1Avvw"/>
+<span class="text-label-md text-primary font-bold">Tinder</span>
+</button>
+<button class="flex flex-col items-center justify-center gap-xs py-md border border-surface-variant rounded-lg hover:bg-surface-container transition-colors">
+<img alt="Hinge" class="w-6 h-6 grayscale" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC3hz4OLx3udmGTs6ZWG0QYtSntU4qFX9uGcmA0zLSHQVJAKNpPwmRo9itvY4FH2k_XXH3Yy9QsNCqgofH_DnmmslV4BQs1zPDi9JmeXuE7B1kX-gK74amFqswMbkrv5UlrjGtckHaWogYXNRELZSHAOQ5h6MBO2JO2QWh2ycTbeV_Jsm7cxePhp6T5ZbGSaGqSqysy_VbyLgyR5lv5rZ9XoAtAT2CHYJIQBmqIiU84Le3XiIWpbdl4fqjsA8rF41dr4rHDG7G58VM"/>
+<span class="text-label-md text-on-surface-variant">Hinge</span>
+</button>
+<button class="flex flex-col items-center justify-center gap-xs py-md border border-surface-variant rounded-lg hover:bg-surface-container transition-colors">
+<img alt="Bumble" class="w-6 h-6 grayscale" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC0SNJpsQ5m7Imx0pGgGSUoTrVpcA5DaEVILLW3XoX6Mi6oG3i8_fPtfBzYx-US1OQlG3cdWGKzOyrAiGBV3B1c2UM_bCtRAjrK_ouENmiqFj28Yd1rdrt8JaobY93hvX8uhYSzXseAnA5_ZERyfsiuSfe8TbFn1R5DqJjpvKIGlE6-Vaq1xEvScoTYiEx_sFCSCE_iIBVvWt5a8dj8rsiE30QxNFR3aupS2N0URelOpmldD2lwEfvANru998P-CPAtcFATP-xwrtU"/>
+<span class="text-label-md text-on-surface-variant">Bumble</span>
+</button>
+</div>
+<button class="w-full bg-primary text-on-primary py-lg rounded-lg font-bold text-body-md mt-md flex items-center justify-center gap-md active:scale-95 transition-transform">
+<span class="material-symbols-outlined" data-icon="auto_awesome">auto_awesome</span>
+              Generate Drafts
+            </button>
+</div>
+</div>
+<!-- Output Canvas -->
+<div class="md:col-span-7 space-y-lg">
+<!-- Viral Highlight Card -->
+<div class="plate-level-2 p-lg rounded-xl border-l-4 border-primary matte-shadow relative overflow-hidden group">
+<div class="absolute top-0 right-0 bg-secondary px-md py-1 rounded-bl-lg flex items-center gap-xs">
+<span class="material-symbols-outlined text-[14px] text-on-secondary" data-icon="bolt" data-weight="fill" style="font-variation-settings: 'FILL' 1;">bolt</span>
+<span class="text-label-md font-bold text-on-secondary uppercase">Viral Pick</span>
+</div>
+<div class="flex items-center gap-md mb-md">
+<div class="w-10 h-10 rounded-full bg-surface-container-highest flex items-center justify-center">
+<span class="material-symbols-outlined text-primary" data-icon="psychology">psychology</span>
+</div>
+<div>
+<h3 class="text-body-lg font-bold">The Strategic Tease</h3>
+<div class="flex items-center gap-sm">
+<div class="w-2 h-2 rounded-full bg-tertiary"></div>
+<span class="text-label-md text-tertiary font-bold">98% AI Confidence</span>
+</div>
+</div>
+</div>
+<p class="text-headline-md font-medium text-on-surface leading-snug">
+              "My espresso order is more complex than my life choices. Searching for a travel partner who isn't afraid of a 4 AM airport run or a chess rematch they'll definitely lose. ♟️✈️"
+            </p>
+<div class="flex items-center justify-between mt-xl">
+<div class="flex gap-md">
+<button class="flex items-center gap-xs text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined" data-icon="content_copy">content_copy</span>
+<span class="text-label-md">Copy</span>
+</button>
+<button class="flex items-center gap-xs text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined" data-icon="refresh">refresh</span>
+<span class="text-label-md">Variations</span>
+</button>
+</div>
+<span class="text-label-md text-on-surface-variant">158 characters</span>
+</div>
+</div>
+<!-- Secondary Variations -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-md">
+<!-- Variation 1 -->
+<div class="plate-level-1 p-md rounded-xl hover:border-primary/50 transition-colors cursor-pointer group">
+<div class="flex justify-between items-start mb-sm">
+<span class="text-label-md text-on-surface-variant uppercase">Short &amp; Sweet</span>
+<span class="material-symbols-outlined text-on-surface-variant group-hover:text-primary" data-icon="more_horiz">more_horiz</span>
+</div>
+<p class="text-body-md text-on-surface mb-md">"Espresso &amp; Chess. Send your best opening move. ♟️☕"</p>
+<div class="flex items-center justify-between">
+<span class="text-label-md text-on-surface-variant">84% Match</span>
+<button class="p-xs hover:bg-surface-container rounded transition-colors">
+<span class="material-symbols-outlined text-[18px]" data-icon="content_copy">content_copy</span>
+</button>
+</div>
+</div>
+<!-- Variation 2 -->
+<div class="plate-level-1 p-md rounded-xl hover:border-primary/50 transition-colors cursor-pointer group">
+<div class="flex justify-between items-start mb-sm">
+<span class="text-label-md text-on-surface-variant uppercase">The Adventurer</span>
+<span class="material-symbols-outlined text-on-surface-variant group-hover:text-primary" data-icon="more_horiz">more_horiz</span>
+</div>
+<p class="text-body-md text-on-surface mb-md">"World traveler looking for a co-pilot who handles jet lag as well as I handle a double shot of espresso."</p>
+<div class="flex items-center justify-between">
+<span class="text-label-md text-on-surface-variant">91% Match</span>
+<button class="p-xs hover:bg-surface-container rounded transition-colors">
+<span class="material-symbols-outlined text-[18px]" data-icon="content_copy">content_copy</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Visual Aesthetic Guide (Quick Tip Card) -->
+<div class="plate-level-1 p-lg rounded-xl flex items-center gap-lg">
+<div class="flex-shrink-0 w-24 h-24 rounded-lg bg-surface-container-highest overflow-hidden">
+<img class="w-full h-full object-cover grayscale opacity-60" data-alt="A portrait of a stylish young professional with a confident expression, set against a minimalist dark grey studio background. The lighting is dramatic and low-key, emphasizing the contours of the face. The overall aesthetic is high-fidelity and sophisticated, perfectly matching the dark luxury tech brand identity with its focus on precision and exclusivity." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDrkVJjYnuvaQzPvR3j-NpOhAkmmB7xHHJnjrcdPs9kHyW3-qDNjAysFg27mrS8szHswuegkYl3Cdu-nxXuXzXEbe77D3Vgf3nYzttwdFNAvD-7eNmO0NFDx0xQSuhXAtspGjMFRYUXRbwF5mAlxNpO8MjZ0IFhQqNyuQHvZU1FgiJ2-lYJmVeISe2NzRDYX2YEaEMH_g_6mM7FIyst4jCmgUxeSPMxvosAmLS5UTZjuM2RNXN6k2SxyE6iww0EjlNXeBTCMzLR1fI"/>
+</div>
+<div>
+<h4 class="text-body-md font-bold text-on-surface">Pro Tip: Contrast Matters</h4>
+<p class="text-body-md text-on-surface-variant">Your bio works best with high-resolution, low-saturation photos. Pair these drafts with your 'Quiet Luxury' photo set.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Bottom Navigation (Shared Component - Mobile Only) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full flex justify-around items-center h-20 px-4 pb-safe bg-surface border-t border-surface-variant z-50 rounded-t-xl shadow-md">
+<a class="flex flex-col items-center justify-center text-on-surface-variant active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="chat">chat</span>
+<span class="text-label-md">Chat</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="bolt">bolt</span>
+<span class="text-label-md">Tones</span>
+</a>
+<a class="flex flex-col items-center justify-center text-primary font-bold active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="face_6">face_6</span>
+<span class="text-label-md">Bios</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="auto_awesome_motion">auto_awesome_motion</span>
+<span class="text-label-md">Vault</span>
+</a>
+</nav>
+</body></html>
