@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, TextInput, Pressable, ActivityIndicator, Alert, ScrollView, Image } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
@@ -15,15 +15,28 @@ import { useAppStore } from '@/store/useAppStore';
 
 export default function BiosScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ mode?: string }>();
   const activeTone = useAppStore((state) => state.activeTone);
   const addToVault = useAppStore((state) => state.addToVault);
   
-  const [mode, setMode] = useState(0); // 0: Bio, 1: Opener
+  const [mode, setMode] = useState(params.mode === 'opener' ? 1 : 0); // 0: Bio, 1: Opener
   const [bioInput, setBioInput] = useState('');
   const [openerInput, setOpenerInput] = useState('');
   const [selectedTone, setSelectedTone] = useState(activeTone || 'Witty');
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (params.mode) {
+      setMode(params.mode === 'opener' ? 1 : 0);
+    }
+  }, [params.mode]);
+
+  useEffect(() => {
+    if (activeTone) {
+      setSelectedTone(activeTone);
+    }
+  }, [activeTone]);
 
   const handleGenerate = async () => {
     const input = mode === 0 ? bioInput : openerInput;

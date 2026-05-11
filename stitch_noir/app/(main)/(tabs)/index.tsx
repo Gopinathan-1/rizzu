@@ -305,29 +305,36 @@ export default function HomeScreen() {
       <View className="mt-12">
         <Text variant="label" className="text-on-surface-variant mb-4">Quick Actions</Text>
         <View className="gap-4">
-          <Card className="p-6 bg-surface-container border border-outline-variant min-h-[160px] justify-between rounded-xl">
-            <Zap size={24} color="#d3bbff" />
-            <View>
-              <Text variant="headline" size="xl" className="mb-1">Generate Opener</Text>
-              <Text className="text-on-surface-variant text-sm">Break the ice instantly with AI logic.</Text>
-            </View>
-          </Card>
+          <Pressable onPress={() => router.push({ pathname: '/(main)/(tabs)/bios', params: { mode: 'opener' } })}>
+            <Card className="p-6 bg-surface-container border border-outline-variant min-h-[160px] justify-between rounded-xl active:bg-surface-high">
+              <Zap size={24} color="#d3bbff" />
+              <View>
+                <Text variant="headline" size="xl" className="mb-1">Generate Opener</Text>
+                <Text className="text-on-surface-variant text-sm">Break the ice instantly with AI logic.</Text>
+              </View>
+            </Card>
+          </Pressable>
 
           <View className="flex-row gap-4">
-            <Card className="flex-1 p-6 bg-surface-container border border-outline-variant aspect-square justify-between rounded-xl">
-              <Sparkles size={24} color="#adc6ff" />
-              <View>
-                <Text weight="bold" size="md" className="mb-1">Write Bio</Text>
-                <Text className="text-on-surface-variant text-xs">Profile optimization.</Text>
-              </View>
-            </Card>
-            <Card className="flex-1 p-6 bg-surface-container border border-outline-variant aspect-square justify-between rounded-xl">
-              <BarChart3 size={24} color="#ffb2b7" />
-              <View>
-                <Text weight="bold" size="md" className="mb-1">Analysis</Text>
-                <Text className="text-on-surface-variant text-xs">Sentiment score.</Text>
-              </View>
-            </Card>
+            <Pressable className="flex-1" onPress={() => router.push({ pathname: '/(main)/(tabs)/bios', params: { mode: 'bio' } })}>
+              <Card className="p-6 bg-surface-container border border-outline-variant aspect-square justify-between rounded-xl active:bg-surface-high">
+                <Sparkles size={24} color="#adc6ff" />
+                <View>
+                  <Text weight="bold" size="md" className="mb-1">Write Bio</Text>
+                  <Text className="text-on-surface-variant text-xs">Profile optimization.</Text>
+                </View>
+              </Card>
+            </Pressable>
+            
+            <Pressable className="flex-1" onPress={() => router.push('/(main)/(tabs)/vault')}>
+              <Card className="p-6 bg-surface-container border border-outline-variant aspect-square justify-between rounded-xl active:bg-surface-high">
+                <BarChart3 size={24} color="#ffb2b7" />
+                <View>
+                  <Text weight="bold" size="md" className="mb-1">The Vault</Text>
+                  <Text className="text-on-surface-variant text-xs">Saved elite replies.</Text>
+                </View>
+              </Card>
+            </Pressable>
           </View>
         </View>
       </View>

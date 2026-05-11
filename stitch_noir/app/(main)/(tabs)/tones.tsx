@@ -36,6 +36,7 @@ export default function TonesScreen() {
   
   const [loading, setLoading] = useState(true);
   const [tones, setTones] = useState<TrendingToneRecord[]>([]);
+  const [waitlistJoined, setWaitlistJoined] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -79,7 +80,25 @@ export default function TonesScreen() {
   }, []);
 
   const handleCustomToneUpload = () => {
-    Alert.alert('Beta Feature', 'Custom Tone Engine is coming soon in the next update. You will be able to upload chat logs to train your own AI personality.');
+    if (waitlistJoined) {
+      Alert.alert('Already on list', 'You are already on the priority access list for the Custom Tone Engine.');
+      return;
+    }
+    
+    Alert.alert(
+      'Join Waitlist',
+      'The Custom Tone Engine is in private beta. Would you like to join the waitlist for early access?',
+      [
+        { text: 'Not now', style: 'cancel' },
+        { 
+          text: 'Join Waitlist', 
+          onPress: () => {
+            setWaitlistJoined(true);
+            Alert.alert('Success', 'You have been added to the priority access list.');
+          }
+        }
+      ]
+    );
   };
 
   return (
@@ -170,8 +189,8 @@ export default function TonesScreen() {
             Upload your own chat history (WhatsApp, iMessage, etc.) to train Aura on your specific speaking style.
           </Text>
           <Button
-            label="Upload History"
-            variant="secondary"
+            label={waitlistJoined ? "Joined Waitlist" : "Upload History"}
+            variant={waitlistJoined ? "outline" : "secondary"}
             size="md"
             icon={Sparkles}
             className="mt-8 px-10 rounded-2xl w-full"
@@ -179,7 +198,9 @@ export default function TonesScreen() {
           />
           <View className="mt-4 flex-row items-center gap-2">
             <View className="w-2 h-2 rounded-full bg-secondary" />
-            <Text size="xs" className="text-secondary font-bold uppercase tracking-widest">Beta Access Required</Text>
+            <Text size="xs" className="text-secondary font-bold uppercase tracking-widest">
+              {waitlistJoined ? "Priority Access Secured" : "Beta Access Required"}
+            </Text>
           </View>
         </View>
       </ScrollView>

@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { View, Pressable, ScrollView, ActivityIndicator, Alert, Image } from 'react-native';
+import { View, Pressable, ScrollView, ActivityIndicator, Alert, Image, TextInput } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
-import { Search, Filter, Heart, Copy, Bookmark, Sparkles, MoreVertical, Trash2, History, Settings, Share2 } from 'lucide-react-native';
+import { Search, Filter, Heart, Copy, Bookmark, Sparkles, MoreVertical, Trash2, History, Settings, Share2, X } from 'lucide-react-native';
 import { deleteVaultRecord, fetchVaultRecords, VaultRecord } from '@/services/appData';
 import { useAppStore } from '@/store/useAppStore';
 import { useRouter } from 'expo-router';
@@ -16,6 +16,7 @@ export default function VaultScreen() {
   const [activeTab, setActiveTab] = useState<TabName>('reply');
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState<VaultRecord[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const removeFromVault = useAppStore((state) => state.removeFromVault);
 
   const loadVault = async () => {
@@ -34,7 +35,12 @@ export default function VaultScreen() {
     loadVault();
   }, []);
 
-  const filteredItems = items.filter((item) => item.type === activeTab);
+  const filteredItems = items
+    .filter((item) => item.type === activeTab)
+    .filter((item) => 
+      item.content.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      (item.tone && item.tone.toLowerCase().includes(searchQuery.toLowerCase()))
+    );
 
   const handleCopy = async (content: string) => {
     await Clipboard.setStringAsync(content);
@@ -54,7 +60,7 @@ export default function VaultScreen() {
             return;
           }
           removeFromVault(id);
-          await loadVault();
+          setItems(prev => prev.filter(i => i.id !== id));
         },
       },
     ]);
@@ -88,6 +94,24 @@ export default function VaultScreen() {
           </Text>
         </View>
 
+        <View className="mb-8">
+          <Card className="flex-row items-center px-4 py-1 bg-surface-container border border-outline-variant rounded-2xl">
+            <Search size={20} color="#958da1" />
+            <TextInput
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholder="Search by content or tone..."
+              placeholderTextColor="#958da1"
+              className="flex-1 ml-3 h-12 text-on-surface font-inter"
+            />
+            {searchQuery ? (
+              <Pressable onPress={() => setSearchQuery('')}>
+                <X size={18} color="#958da1" />
+              </Pressable>
+            ) : null}
+          </Card>
+        </View>
+
         <View className="flex-row gap-3 mb-8">
           {[
             { key: 'reply', label: 'Replies', icon: Heart },
@@ -119,10 +143,22 @@ export default function VaultScreen() {
             <View className="w-16 h-16 rounded-full bg-surface-container-high items-center justify-center mb-6">
                <Bookmark size={32} color="#958da1" />
             </View>
-            <Text weight="bold" size="xl" className="text-center">No saved {activeTab}s yet</Text>
-            <Text className="text-outline text-center mt-2 leading-relaxed">
-              Generate and save your first item from the reply, bio, or opener screens to see them here.
+            <Text weight="bold" size="xl" className="text-center">
+              {searchQuery ? 'No matches found' : `No saved ${activeTab}s yet`}
             </Text>
+            <Text className="text-outline text-center mt-2 leading-relaxed">
+              {searchQuery 
+                ? "Try a different search term or clear the filter." 
+                : `Generate and save your first ${activeTab} to see it here.`}
+            </Text>
+            {!searchQuery && (
+              <Pressable 
+                onPress={() => router.push(activeTab === 'reply' ? '/reply-generator' : '/(main)/(tabs)/bios')}
+                className="mt-6 bg-primary px-6 py-3 rounded-xl"
+              >
+                <Text weight="bold" className="text-on-primary">Start Generating</Text>
+              </Pressable>
+            )}
           </Card>
         ) : (
           <View className="gap-4">
