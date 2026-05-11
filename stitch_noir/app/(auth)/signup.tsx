@@ -31,7 +31,7 @@ export default function SignupScreen() {
     setLoading(false);
 
     if (error) {
-      Alert.alert('Signup Failed', error?.message || 'An error occurred');
+      Alert.alert('Signup Failed', (error as any)?.message || 'An error occurred');
       return;
     }
 

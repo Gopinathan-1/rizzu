@@ -1,4 +1,16 @@
 export const Colors = {
+  light: {
+    text: '#15121b',
+    background: '#f5f5f5',
+    tint: '#3f008d',
+    icon: '#4a4455',
+    tabIconDefault: '#4a4455',
+    tabIconSelected: '#3f008d',
+    surface: '#ffffff',
+    primary: '#3f008d',
+    secondary: '#005ac1',
+    outline: '#79747e',
+  },
   dark: {
     text: '#e8e0ee',
     background: '#15121b',

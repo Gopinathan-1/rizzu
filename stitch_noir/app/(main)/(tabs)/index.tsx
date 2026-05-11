@@ -163,7 +163,9 @@ export default function HomeScreen() {
 
     try {
       const asset = result.assets[0];
-      const prompt = `Extract all the text from this conversation screenshot, then analyze:\n1. The emotional tone of the conversation\n2. The other person's mood and intent\n3. 3 tailored reply suggestions\n\nReturn structured JSON exactly in this shape: {"extractedText":"","tone":"","mood":"","replies":["","",""]}`;
+      if (!asset.base64) throw new Error('Could not read image data');
+
+      const prompt = `Extract all the text from this conversation screenshot, then analyze:\n1. The emotional tone of the conversation\n2. The other person\'s mood and intent\n3. 3 tailored reply suggestions\n\nReturn structured JSON exactly in this shape: {"extractedText":"","tone":"","mood":"","replies":["","",""]}`;
 
       const response = await generateVisionText(prompt, asset.base64, asset.mimeType ?? 'image/jpeg');
       const parsed = extractJson<{ extractedText: string; tone: string; mood: string; replies: string[] }>(response);

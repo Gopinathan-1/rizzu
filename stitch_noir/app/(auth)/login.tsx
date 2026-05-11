@@ -25,7 +25,7 @@ export default function LoginScreen() {
     setLoading(false);
 
     if (error) {
-      Alert.alert('Login Failed', error?.message || 'Invalid email or password');
+      Alert.alert('Login Failed', (error as any)?.message || 'Invalid email or password');
       return;
     }
 

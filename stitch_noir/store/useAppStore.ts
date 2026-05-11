@@ -40,6 +40,7 @@ type AppState = {
   addToVault: (item: VaultItem) => void;
   removeFromVault: (id: string) => void;
   addToHistory: (item: HistoryItem) => void;
+  logout: () => void;
   clearState: () => void;
 };
 
@@ -47,6 +48,9 @@ const memoryStorage = {
   getItem: async (name: string) => null,
   setItem: async (_name: string, _value: string) => undefined,
   removeItem: async (_name: string) => undefined,
+  clear: async () => undefined,
+  key: async (_index: number) => null,
+  length: 0,
 };
 
 const storage = createJSONStorage(() => {
@@ -54,7 +58,7 @@ const storage = createJSONStorage(() => {
     return window.localStorage;
   }
 
-  return memoryStorage as Storage;
+  return memoryStorage as unknown as Storage;
 });
 
 const initialState = {
@@ -91,6 +95,7 @@ export const useAppStore = create<AppState>()(
         set((state) => ({
           history: [item, ...state.history.filter((existing) => existing.id !== item.id)],
         })),
+      logout: () => set({ user: null, isPremium: false }),
       clearState: () => set(initialState),
     }),
     {
