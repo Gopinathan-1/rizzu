@@ -1,11 +1,13 @@
 import '../theme/global.css';
 import { DarkTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts, Inter_400Regular, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
-import { Stack } from 'expo-router';
+import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import 'react-native-reanimated';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { supabase } from '@/services/auth';
+import { useAppStore } from '@/store/useAppStore';
 
 export {
   ErrorBoundary,
@@ -27,11 +29,16 @@ const AppTheme = {
 };
 
 export default function RootLayout() {
+  const router = useRouter();
+  const segments = useSegments();
   const [loaded, error] = useFonts({
     Inter: Inter_400Regular,
     'Inter-SemiBold': Inter_600SemiBold,
     'Inter-Bold': Inter_700Bold,
   });
+  const [authReady, setAuthReady] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const setUser = useAppStore((state) => state.setUser);
 
   useEffect(() => {
     if (error) throw error;
@@ -43,7 +50,76 @@ export default function RootLayout() {
     }
   }, [loaded]);
 
-  if (!loaded) {
+  useEffect(() => {
+    let isMounted = true;
+
+    const bootstrapAuth = async () => {
+      if (!supabase) {
+        if (isMounted) {
+          setIsLoggedIn(false);
+          setAuthReady(true);
+        }
+        return;
+      }
+
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (isMounted) {
+        setIsLoggedIn(Boolean(session));
+        setUser(
+          session?.user
+            ? {
+                id: session.user.id,
+                email: session.user.email,
+                full_name: session.user.user_metadata?.full_name ?? session.user.user_metadata?.name ?? null,
+              }
+            : null
+        );
+        setAuthReady(true);
+      }
+    };
+
+    bootstrapAuth();
+
+    const subscription = supabase?.auth.onAuthStateChange((_event, session) => {
+      setIsLoggedIn(Boolean(session));
+      setUser(
+        session?.user
+          ? {
+              id: session.user.id,
+              email: session.user.email,
+              full_name: session.user.user_metadata?.full_name ?? session.user.user_metadata?.name ?? null,
+            }
+          : null
+      );
+      setAuthReady(true);
+    }).data.subscription;
+
+    return () => {
+      isMounted = false;
+      subscription?.unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!authReady) return;
+
+    const inAuthGroup = segments[0] === '(auth)';
+    const inMainGroup = segments[0] === '(main)';
+
+    if (isLoggedIn && inAuthGroup) {
+      router.replace('/(main)/(tabs)');
+      return;
+    }
+
+    if (!isLoggedIn && inMainGroup) {
+      router.replace('/(auth)/login');
+    }
+  }, [authReady, isLoggedIn, router, segments]);
+
+  if (!loaded || !authReady) {
     return null;
   }
 

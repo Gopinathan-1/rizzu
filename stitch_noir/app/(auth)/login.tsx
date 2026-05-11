@@ -1,14 +1,37 @@
-import React from 'react';
-import { View, TextInput, Pressable, Image } from 'react-native';
+import React, { useState } from 'react';
+import { View, TextInput, Pressable, Alert } from 'react-native';
 import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { useRouter } from 'expo-router';
-import { Mail, Lock, ArrowRight, Github } from 'lucide-react-native';
+import { Mail, Lock, ArrowRight } from 'lucide-react-native';
+import { authService } from '@/services/auth';
 
 export default function LoginScreen() {
   const router = useRouter();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+
+    setLoading(true);
+    const { data, error } = await authService.login(email, password);
+    setLoading(false);
+
+    if (error) {
+      Alert.alert('Login Failed', error?.message || 'Invalid email or password');
+      return;
+    }
+
+    Alert.alert('Success', 'Welcome back!');
+    router.replace('/(main)/(tabs)');
+  };
 
   return (
     <ScreenContainer className="bg-background">
@@ -31,6 +54,9 @@ export default function LoginScreen() {
               placeholderTextColor="#4a4455"
               autoCapitalize="none"
               keyboardType="email-address"
+              value={email}
+              onChangeText={setEmail}
+              editable={!loading}
             />
           </Card>
         </View>
@@ -44,42 +70,28 @@ export default function LoginScreen() {
               placeholder="••••••••"
               placeholderTextColor="#4a4455"
               secureTextEntry
+              value={password}
+              onChangeText={setPassword}
+              editable={!loading}
             />
           </Card>
-          <Pressable className="mt-4 items-end">
+          <Pressable className="mt-4 items-end" disabled={loading}>
             <Text className="text-primary text-xs font-bold tracking-wider">FORGOT PASSWORD?</Text>
           </Pressable>
         </View>
 
         <Pressable 
           className="bg-primary-container h-16 rounded-2xl flex-row items-center justify-center mt-4 active:brightness-110 shadow-lg"
-          onPress={() => router.replace('/(main)/(tabs)')}
+          onPress={handleLogin}
+          disabled={loading}
         >
-          <Text weight="bold" size="lg" className="text-on-primary-container mr-2">Log In</Text>
+          <Text weight="bold" size="lg" className="text-on-primary-container mr-2">{loading ? 'Logging In...' : 'Log In'}</Text>
           <ArrowRight size={20} color="#dac5ff" />
         </Pressable>
-
-        <View className="flex-row items-center my-8">
-          <View className="flex-1 h-[1px] bg-outline-variant" />
-          <Text className="mx-4 text-on-surface-variant text-[10px] font-inter-bold tracking-widest uppercase opacity-50">OR CONTINUE WITH</Text>
-          <View className="flex-1 h-[1px] bg-outline-variant" />
-        </View>
-
-        <View className="flex-row gap-4">
-           <Pressable className="flex-1 h-14 bg-surface-low border border-outline-variant rounded-2xl items-center justify-center active:bg-surface-high">
-              <Image 
-                source={{ uri: 'https://cdn-icons-png.flaticon.com/512/2991/2991148.png' }} 
-                className="w-5 h-5"
-              />
-           </Pressable>
-           <Pressable className="flex-1 h-14 bg-surface-low border border-outline-variant rounded-2xl items-center justify-center active:bg-surface-high">
-              <Github size={22} color="#f5f5f5" />
-           </Pressable>
-        </View>
       </View>
 
       <View className="mt-16 mb-8 items-center">
-        <Pressable onPress={() => router.push('/(auth)/signup')}>
+        <Pressable onPress={() => router.push('/(auth)/signup')} disabled={loading}>
           <Text className="text-on-surface-variant font-inter">Don't have an account? <Text className="text-primary font-inter-bold">Sign Up</Text></Text>
         </Pressable>
       </View>
