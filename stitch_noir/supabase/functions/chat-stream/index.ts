@@ -1,8 +1,13 @@
 import { chunkText } from '../../../lib/chunking.ts';
 import { buildChunkId, buildRetrievalSummary } from '../../../lib/chroma.ts';
+import { getTonePrompt, normalizeToneName } from '../../../lib/tonePrompts.ts';
 import { generateChatTitle, generateEmbedding, streamText, summarizeMemory } from '../_shared/gemini.ts';
 import { getAuthedClient, getServiceRoleClient, handleCorsPreflight, withCors } from '../_shared/supabase.ts';
 import { queryChunks, upsertChunks } from '../_shared/chroma.ts';
+
+declare const Deno: {
+  serve: (handler: (request: Request) => Promise<Response> | Response) => void;
+};
 
 const encoder = new TextEncoder();
 const CHAT_MEMORY_LIMIT = 12;
@@ -21,7 +26,7 @@ function parseTitleResponse(text: string) {
 function buildPrompt(params: {
   chatTitle: string;
   userMessage: string;
-  tone?: string;
+  tonePrompt?: string;
   memories: string;
   uploads: string;
   retrieved: string;
@@ -36,14 +41,16 @@ function buildPrompt(params: {
     'Answer using a warm, concise, useful style with clean markdown.',
     'Use relevant uploaded documents, past chats, and long-term memory when helpful.',
     'If the context is not enough, say what is missing instead of inventing facts.',
-    params.tone ? `Preferred tone: ${params.tone}` : '',
+    params.tonePrompt ?? '',
     `Current chat title: ${params.chatTitle}`,
     params.memories ? `Relevant memory summaries:\n${params.memories}` : '',
     params.uploads ? `Recent uploads and file context:\n${params.uploads}` : '',
     params.retrieved ? `Relevant retrieved chunks:\n${params.retrieved}` : '',
     conversationBlock ? `Conversation so far:\n${conversationBlock}` : '',
     `User message: ${params.userMessage}`,
-    'Respond directly and naturally. Use markdown when it improves readability.',
+    'Respond with exactly 3 short line replies.',
+    'Do not use paragraphs or bullet lists.',
+    'Keep the answer direct and natural. Use markdown only if it stays within three short lines.',
   ]
     .filter(Boolean)
     .join('\n\n');
@@ -108,14 +115,17 @@ Deno.serve(async (request) => {
     });
 
     console.log(`[chat-stream] Retrieved ${retrievedHits.length} chunks`);
+    const memoryItems = (memories ?? []) as Array<{ summary: string }>;
+    const uploadItems = (uploads ?? []) as Array<{ filename: string; file_type: string }>;
+    const messageItems = (messages ?? []) as Array<{ role: string; content: string }>;
     const prompt = buildPrompt({
       chatTitle: chat?.title ?? 'New chat',
       userMessage: message,
-      tone,
-      memories: (memories ?? []).map((item) => item.summary).join('\n\n'),
-      uploads: (uploads ?? []).map((item) => `${item.filename} (${item.file_type})`).join('\n'),
+      tonePrompt: getTonePrompt(normalizeToneName(tone)),
+      memories: memoryItems.map((item) => item.summary).join('\n\n'),
+      uploads: uploadItems.map((item) => `${item.filename} (${item.file_type})`).join('\n'),
       retrieved: buildRetrievalSummary(retrievedHits),
-      conversation: (messages ?? [])
+      conversation: messageItems
         .slice()
         .reverse()
         .map((item) => ({ role: item.role, content: item.content })),
@@ -135,9 +145,10 @@ Deno.serve(async (request) => {
           }
 
           console.log('[chat-stream-stream] Stream complete, summarizing memory...');
+          const retrievedDocuments = retrievedHits as Array<{ document: string }>;
           const summary = await summarizeMemory({
             chatTitle: chat?.title ?? 'New chat',
-            extractedText: `${message}\n\n${retrievedHits.map((hit) => hit.document).join('\n\n')}`,
+            extractedText: `${message}\n\n${retrievedDocuments.map((hit) => hit.document).join('\n\n')}`,
             responseText: assistantText,
           });
 

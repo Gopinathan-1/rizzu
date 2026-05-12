@@ -9,15 +9,14 @@ import {
   Pressable,
   TextInput,
   View,
-  useWindowDimensions,
 } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import { useRouter } from 'expo-router';
-import { ArrowUp, ChevronLeft, History, Paperclip, Plus, Search, Settings, Sparkles, UploadCloud } from 'lucide-react-native';
+import { ArrowUp, ChevronDown, History, Paperclip, Plus, Search, Settings, Sparkles, UploadCloud } from 'lucide-react-native';
 import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
-import { ChatSidebar } from '@/components/tones/ChatSidebar';
+import { MemoryDrawer } from '@/components/tones/MemoryDrawer';
 import { ChatMessageBubble } from '@/components/tones/ChatMessageBubble';
 import {
   createWorkspaceChat,
@@ -38,6 +37,7 @@ import {
   type WorkspaceUpload,
 } from '@/services/chatWorkspace';
 import { getUploadContentKind, isSupportedUpload, type UploadSource } from '@/lib/file-processing';
+import { TONE_OPTIONS, normalizeToneName } from '@/lib/tonePrompts';
 import { useAppStore } from '@/store/useAppStore';
 
 const MESSAGE_PAGE_SIZE = 30;
@@ -80,13 +80,6 @@ function groupChatsByRecency(chats: WorkspaceChat[]): ChatGroup[] {
     .filter((group) => group.items.length > 0);
 }
 
-function formatDateLabel(dateString: string) {
-  return new Date(dateString).toLocaleDateString([], {
-    month: 'short',
-    day: 'numeric',
-  });
-}
-
 function normalizeTitle(title: string) {
   return title.trim().replace(/\s+/g, ' ').slice(0, 80) || 'New chat';
 }
@@ -94,9 +87,8 @@ function normalizeTitle(title: string) {
 export default function TonesScreen() {
   const router = useRouter();
   const listRef = useRef<FlatList<WorkspaceMessage>>(null);
-  const { width } = useWindowDimensions();
-  const isWideLayout = width >= 980;
   const activeTone = useAppStore((state) => state.activeTone);
+  const setActiveTone = useAppStore((state) => state.setActiveTone);
   const user = useAppStore((state) => state.user);
 
   const [chats, setChats] = useState<WorkspaceChat[]>([]);
@@ -115,6 +107,18 @@ export default function TonesScreen() {
   const [renameChat, setRenameChat] = useState<WorkspaceChat | null>(null);
   const [renameValue, setRenameValue] = useState('');
   const [composerNotice, setComposerNotice] = useState('');
+  const [isMemoryDrawerOpen, setIsMemoryDrawerOpen] = useState(false);
+  const [isTonePickerOpen, setIsTonePickerOpen] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [uploadLabel, setUploadLabel] = useState('');
+
+  const selectedTone = normalizeToneName(activeTone);
+
+  useEffect(() => {
+    if (activeTone !== selectedTone) {
+      setActiveTone(selectedTone);
+    }
+  }, [activeTone, selectedTone, setActiveTone]);
 
   const selectedChat = useMemo(
     () => chats.find((chat) => chat.id === selectedChatId) ?? null,
@@ -122,6 +126,19 @@ export default function TonesScreen() {
   );
 
   const chatsByGroup = useMemo(() => groupChatsByRecency(chats), [chats]);
+
+  const startUploadProgress = useCallback((label: string) => {
+    setUploadLabel(label);
+    setUploadProgress(8);
+
+    let current = 8;
+    const timer = setInterval(() => {
+      current = Math.min(current + Math.max(3, Math.round((95 - current) / 3)), 95);
+      setUploadProgress(current);
+    }, 180);
+
+    return () => clearInterval(timer);
+  }, []);
 
   const refreshChats = useCallback(async (query = searchText) => {
     setLoadingChats(true);
@@ -219,6 +236,7 @@ export default function TonesScreen() {
   }, []);
 
   const handlePickUpload = useCallback(async () => {
+    let stopProgress: (() => void) | null = null;
     try {
       const chatId = await ensureChat();
       const result = await DocumentPicker.getDocumentAsync({
@@ -247,24 +265,34 @@ export default function TonesScreen() {
       }
 
       setIsUploading(true);
-      setComposerNotice(`Indexing ${filename}...`);
+      setComposerNotice(`Uploading ${filename}...`);
+      stopProgress = startUploadProgress(filename);
       await uploadWorkspaceFile(asset as UploadSource, chatId);
       const uploadResult = await fetchWorkspaceUploads(chatId);
       if (uploadResult.data) {
         setUploads(uploadResult.data);
       }
-      setComposerNotice(`Ready: ${filename}`);
-      setTimeout(() => setComposerNotice(''), 1800);
+      setUploadProgress(100);
+      setComposerNotice(`Upload complete: ${filename}`);
+      setTimeout(() => {
+        setComposerNotice('');
+        setUploadProgress(null);
+        setUploadLabel('');
+      }, 1800);
     } catch (error) {
       Alert.alert('Upload failed', error instanceof Error ? error.message : 'Could not process the file.');
       setComposerNotice('');
+      setUploadProgress(null);
+      setUploadLabel('');
     } finally {
+      stopProgress?.();
       setIsUploading(false);
     }
-  }, [ensureChat]);
+  }, [ensureChat, startUploadProgress]);
 
   const handleDroppedWebFile = useCallback(
     async (file: File) => {
+      let stopProgress: (() => void) | null = null;
       try {
         const chatId = await ensureChat();
         const filename = file.name || 'upload';
@@ -276,7 +304,8 @@ export default function TonesScreen() {
         }
 
         setIsUploading(true);
-        setComposerNotice(`Indexing ${filename}...`);
+        setComposerNotice(`Uploading ${filename}...`);
+        stopProgress = startUploadProgress(filename);
         await uploadWorkspaceFile({
           file,
           name: filename,
@@ -287,14 +316,24 @@ export default function TonesScreen() {
         if (uploadResult.data) {
           setUploads(uploadResult.data);
         }
+        setUploadProgress(100);
+        setComposerNotice(`Upload complete: ${filename}`);
+        setTimeout(() => {
+          setComposerNotice('');
+          setUploadProgress(null);
+          setUploadLabel('');
+        }, 1800);
       } catch (error) {
         Alert.alert('Upload failed', error instanceof Error ? error.message : 'Could not process the file.');
-      } finally {
-        setIsUploading(false);
         setComposerNotice('');
+        setUploadProgress(null);
+        setUploadLabel('');
+      } finally {
+        stopProgress?.();
+        setIsUploading(false);
       }
     },
-    [ensureChat]
+    [ensureChat, startUploadProgress]
   );
 
   const handleRenameChat = useCallback((chat: WorkspaceChat) => {
@@ -398,7 +437,7 @@ export default function TonesScreen() {
       const streamResponse = await streamWorkspaceReply({
         chatId,
         message: trimmed,
-        tone: activeTone,
+        tone: selectedTone,
       });
 
       // Check response status
@@ -471,7 +510,14 @@ export default function TonesScreen() {
       setIsStreaming(false);
       setComposerNotice('');
     }
-  }, [activeTone, chats, draft, ensureChat, refreshChats, refreshMessages, selectedChat]);
+  }, [chats, draft, ensureChat, refreshChats, refreshMessages, selectedTone, selectedChat]);
+
+  const handleComposerKeyPress = useCallback((event: any) => {
+    if (event.nativeEvent?.key === 'Enter') {
+      event.preventDefault?.();
+      void handleSendMessage();
+    }
+  }, [handleSendMessage]);
 
   const webDropProps =
     Platform.OS === 'web'
@@ -489,14 +535,12 @@ export default function TonesScreen() {
 
   return (
     <ScreenContainer scrollable={false} className="bg-background px-0">
-      <View className="flex-1 bg-background" {...webDropProps}>
-        <View className="flex-row items-center justify-between border-b border-outline-variant px-4 py-3">
-          <View>
+      <View className="relative flex-1 bg-background" {...webDropProps}>
+        <View className="relative flex-row items-center justify-between border-b border-outline-variant px-4 py-3">
+          <View className="flex-1" />
+          <View className="absolute inset-x-0 items-center pointer-events-none">
             <Text variant="headline" className="text-2xl tracking-tighter">
               Stitch Noir
-            </Text>
-            <Text className="text-on-surface-variant">
-              ChatGPT-style memory workspace
             </Text>
           </View>
           <View className="flex-row items-center gap-3">
@@ -520,43 +564,34 @@ export default function TonesScreen() {
           </View>
         </View>
 
-        <View className={`flex-1 ${isWideLayout ? 'flex-row' : 'flex-col'}`}>
-          <ChatSidebar
-            compact={!isWideLayout}
-            searchText={searchText}
-            onSearchTextChange={setSearchText}
-            onNewChat={handleNewChat}
-            chatsByGroup={chatsByGroup}
-            selectedChatId={selectedChatId}
-            uploads={uploads}
-            onSelectChat={setSelectedChatId}
-            onRenameChat={handleRenameChat}
-            onDeleteChat={confirmDeleteChat}
-          />
+        <MemoryDrawer
+          open={isMemoryDrawerOpen}
+          onOpenChange={setIsMemoryDrawerOpen}
+          searchText={searchText}
+          onSearchTextChange={setSearchText}
+          onNewChat={handleNewChat}
+          chatsByGroup={chatsByGroup}
+          selectedChatId={selectedChatId}
+          onSelectChat={(chatId) => {
+            setSelectedChatId(chatId);
+            setIsMemoryDrawerOpen(false);
+          }}
+          onRenameChat={handleRenameChat}
+          onDeleteChat={confirmDeleteChat}
+        />
 
-          <View
-            className="flex-1 bg-background"
-            style={{ minHeight: isWideLayout ? '100%' : 520 }}
-          >
+        <View className="flex-1 bg-background">
             {selectedChat ? (
               <KeyboardAvoidingView
                 className="flex-1"
                 behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-                keyboardVerticalOffset={isWideLayout ? 0 : 80}
+                keyboardVerticalOffset={0}
               >
                 <View className="flex-1 px-4 pt-4">
                   <View className="mb-4 flex-row items-center justify-between gap-3 rounded-3xl border border-outline-variant bg-surface-container px-4 py-3">
                     <View className="flex-1">
                       <Text weight="bold" size="xl" numberOfLines={1}>
                         {selectedChat.title}
-                      </Text>
-                      <Text size="sm" className="text-on-surface-variant">
-                        Updated {formatDateLabel(selectedChat.updated_at)}
-                      </Text>
-                    </View>
-                    <View className="rounded-full bg-primary/15 px-3 py-1">
-                      <Text size="xs" className="text-primary font-bold uppercase tracking-widest">
-                        {activeTone}
                       </Text>
                     </View>
                   </View>
@@ -674,20 +709,51 @@ export default function TonesScreen() {
                       </Text>
                     </View>
                   ) : null}
+                  {uploadProgress !== null ? (
+                    <View className="mb-3 rounded-2xl border border-outline-variant bg-surface-container-high px-4 py-3">
+                      <View className="mb-2 flex-row items-center justify-between gap-3">
+                        <Text size="sm" weight="semibold">
+                          {uploadLabel || 'Uploading'}
+                        </Text>
+                        <Text size="xs" className="text-on-surface-variant">
+                          {Math.round(uploadProgress)}%
+                        </Text>
+                      </View>
+                      <View className="h-2 overflow-hidden rounded-full bg-white/10">
+                        <View
+                          className="h-full rounded-full bg-primary"
+                          style={{ width: `${Math.max(6, Math.min(100, uploadProgress))}%` }}
+                        />
+                      </View>
+                    </View>
+                  ) : null}
                   <View className="rounded-[28px] border border-outline-variant bg-surface-container-high px-3 py-3 shadow-lg shadow-black/20">
                     <TextInput
                       value={draft}
                       onChangeText={setDraft}
                       multiline
+                      returnKeyType="send"
+                      submitBehavior="submit"
+                      onKeyPress={handleComposerKeyPress}
+                      onSubmitEditing={() => void handleSendMessage()}
+                      blurOnSubmit={false}
                       placeholder="Ask Stitch Noir anything about your memory, chats, or uploads..."
                       placeholderTextColor="#958da1"
                       className="min-h-[92px] text-base text-on-surface"
                       textAlignVertical="top"
                     />
-                    <View className="mt-3 flex-row items-center justify-between">
+                    <View className="mt-3 flex-row items-center justify-between gap-3">
                       <Pressable onPress={handlePickUpload} className="flex-row items-center gap-2 rounded-full border border-outline-variant px-3 py-2 active:bg-white/10">
                         <Paperclip size={16} color="#d3bbff" />
                         <Text size="sm">Upload</Text>
+                      </Pressable>
+                      <Pressable
+                        onPress={() => setIsTonePickerOpen(true)}
+                        className="flex-row items-center gap-2 rounded-full border border-outline-variant bg-black/20 px-3 py-2 active:bg-white/10"
+                      >
+                        <Sparkles size={16} color="#d3bbff" />
+                        <Text size="sm">{selectedTone}</Text>
+                        <ChevronDown size={14} color="#958da1" />
                       </Pressable>
                       <Pressable
                         onPress={handleSendMessage}
@@ -736,7 +802,6 @@ export default function TonesScreen() {
                 </View>
               </View>
             )}
-          </View>
         </View>
 
         <Modal visible={Boolean(renameChat)} transparent animationType="fade" onRequestClose={() => setRenameChat(null)}>
@@ -758,6 +823,40 @@ export default function TonesScreen() {
               <View className="mt-5 flex-row items-center justify-end gap-3">
                 <Button label="Cancel" variant="outline" onPress={() => setRenameChat(null)} />
                 <Button label="Save" onPress={commitRename} />
+              </View>
+            </Pressable>
+          </Pressable>
+        </Modal>
+
+        <Modal visible={isTonePickerOpen} transparent animationType="fade" onRequestClose={() => setIsTonePickerOpen(false)}>
+          <Pressable className="flex-1 justify-end bg-black/55 px-4 pb-6" onPress={() => setIsTonePickerOpen(false)}>
+            <Pressable className="overflow-hidden rounded-[28px] border border-white/10 bg-surface-container/95 p-4" onPress={(event) => event.stopPropagation()}>
+              <Text weight="bold" size="xl">
+                Choose tone
+              </Text>
+              <Text className="mt-1 text-on-surface-variant">
+                Replies will follow the selected prompt style.
+              </Text>
+              <View className="mt-4 gap-2">
+                {TONE_OPTIONS.map((tone) => {
+                  const isSelected = tone === selectedTone;
+
+                  return (
+                    <Pressable
+                      key={tone}
+                      onPress={() => {
+                        setActiveTone(tone);
+                        setIsTonePickerOpen(false);
+                      }}
+                      className={`flex-row items-center justify-between rounded-2xl border px-4 py-3 ${
+                        isSelected ? 'border-primary bg-primary/15' : 'border-outline-variant bg-background'
+                      }`}
+                    >
+                      <Text weight="semibold">{tone}</Text>
+                      {isSelected ? <Text size="xs" className="text-primary">Selected</Text> : null}
+                    </Pressable>
+                  );
+                })}
               </View>
             </Pressable>
           </Pressable>
