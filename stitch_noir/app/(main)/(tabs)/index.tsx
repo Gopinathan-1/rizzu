@@ -26,17 +26,14 @@ import {
   Sparkles,
 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
+import * as ClipboardExpo from 'expo-clipboard';
 import * as ImagePicker from 'expo-image-picker';
 import { generateText, generateVisionText } from '@/services/gemini';
 import { extractJson } from '@/services/geminiHelpers';
 import { addHistoryRecord, fetchTrendingTones, TrendingToneRecord } from '@/services/appData';
+import { analyzeConversation, type ConversationAnalysisResult } from '@/services/conversationAnalysis';
+import { ToneAnalysisPanel } from '@/components/tones/ToneAnalysisPanel';
 import { useAppStore } from '@/store/useAppStore';
-
-type AnalysisOutput = {
-  tone: string;
-  mood: string;
-  replyStyles: string[];
-};
 
 const fallbackTones: TrendingToneRecord[] = [
   {
@@ -84,10 +81,9 @@ export default function HomeScreen() {
   const [conversation, setConversation] = useState('');
   const [analysisLoading, setAnalysisLoading] = useState(false);
   const [analysisError, setAnalysisError] = useState('');
-  const [analysis, setAnalysis] = useState<AnalysisOutput | null>(null);
+  const [analysis, setAnalysis] = useState<ConversationAnalysisResult | null>(null);
   const [screenshotLoading, setScreenshotLoading] = useState(false);
   const [screenshotPreview, setScreenshotPreview] = useState('');
-  const [analysisBadge, setAnalysisBadge] = useState('');
   const setActiveTone = useAppStore((state) => state.setActiveTone);
   const setAnalysisStore = useAppStore((state) => state.setAnalysis);
 
@@ -121,20 +117,21 @@ export default function HomeScreen() {
     setAnalysisError('');
 
     try {
-      const prompt = `Analyze this conversation and return:\n1. The overall emotional tone (e.g., flirty, tense, casual, professional)\n2. The other person's intent or mood\n3. 3 suggested reply styles (e.g., playful, direct, empathetic)\n\nReturn JSON exactly in this shape: {"tone":"","mood":"","replyStyles":["","",""]}\n\nConversation:\n${conversation}`;
+      setAnalysis(null);
+      const result = await analyzeConversation(conversation);
+      
+      setAnalysis(result);
+      setAnalysisStore({ tone: result.tone, mood: result.mood, replyStyles: result.replyStyles });
 
-      const response = await generateText(prompt);
-      const parsed = extractJson<AnalysisOutput>(response);
-      setAnalysis(parsed);
-      setAnalysisBadge(parsed.tone);
-      setAnalysisStore({ tone: parsed.tone, mood: parsed.mood, replyStyles: parsed.replyStyles });
       await addHistoryRecord({
         type: 'analysis',
-        content: JSON.stringify({ conversation, analysis: parsed }),
+        content: JSON.stringify({ conversation, analysis: { tone: result.tone, mood: result.mood, replyStyles: result.replyStyles } }),
       });
-      setPasteModalVisible(false);
+      setConversation('');
     } catch (error) {
-      setAnalysisError(error instanceof Error ? error.message : 'Analysis failed');
+      const message = error instanceof Error ? error.message : 'Analysis failed';
+      setAnalysisError(message);
+      console.error('Analysis error:', error);
     } finally {
       setAnalysisLoading(false);
     }
@@ -171,8 +168,7 @@ export default function HomeScreen() {
       const parsed = extractJson<{ extractedText: string; tone: string; mood: string; replies: string[] }>(response);
 
       setScreenshotPreview(parsed.extractedText);
-      setAnalysis({ tone: parsed.tone, mood: parsed.mood, replyStyles: parsed.replies });
-      setAnalysisBadge(parsed.tone);
+      setAnalysis({ tone: parsed.tone, mood: parsed.mood, replyStyles: parsed.replies, replies: parsed.replies });
       setAnalysisStore({ tone: parsed.tone, mood: parsed.mood, replyStyles: parsed.replies, extractedText: parsed.extractedText });
       await addHistoryRecord({
         type: 'analysis',
@@ -258,24 +254,7 @@ export default function HomeScreen() {
         </Card>
       ) : null}
 
-      {analysis ? (
-        <Card className="mt-4 p-5 bg-surface-container border border-outline-variant">
-          <View className="flex-row items-center justify-between mb-3">
-            <View className="bg-primary-container px-3 py-1 rounded-full">
-              <Text size="xs" weight="bold" className="text-on-primary-container">{analysisBadge || analysis.tone}</Text>
-            </View>
-            <Text className="text-outline text-xs uppercase tracking-widest">Mood</Text>
-          </View>
-          <Text weight="bold" size="lg" className="mb-2">{analysis.mood}</Text>
-          <View className="gap-2 mt-3">
-            {analysis.replyStyles.map((style) => (
-              <View key={style} className="px-3 py-2 rounded-xl bg-surface-low border border-outline-variant">
-                <Text className="text-on-surface-variant">{style}</Text>
-              </View>
-            ))}
-          </View>
-        </Card>
-      ) : null}
+      {analysis ? <ToneAnalysisPanel analysis={analysis} /> : null}
 
       <View className="mt-10">
         <View className="flex-row items-center justify-between mb-4">
@@ -381,29 +360,67 @@ export default function HomeScreen() {
 
       <Modal visible={pasteModalVisible} animationType="slide" transparent>
         <View className="flex-1 bg-black/70 justify-end">
-          <View className="bg-background rounded-t-[28px] p-6 min-h-[55%]">
+          <View className="bg-background rounded-t-[28px] p-5 pb-6 min-h-[64%] border-t border-white/10 shadow-2xl shadow-black/40">
             <View className="flex-row items-center justify-between mb-4">
               <Text variant="headline">Paste Conversation</Text>
               <Pressable onPress={() => setPasteModalVisible(false)}>
                 <Text className="text-primary">Close</Text>
               </Pressable>
             </View>
-            <TextInput
-              multiline
-              value={conversation}
-              onChangeText={setConversation}
-              placeholder="Paste the conversation here..."
-              placeholderTextColor="#958da1"
-              className="min-h-[180px] bg-surface-container-lowest border border-outline-variant rounded-2xl p-4 text-on-surface"
-              textAlignVertical="top"
-            />
-            <Button
-              label={analysisLoading ? 'Analyzing...' : 'Analyze'}
-              className="mt-4 py-4 rounded-2xl"
-              onPress={handleAnalyzeConversation}
-              disabled={analysisLoading}
-            />
-            {analysisLoading ? <ActivityIndicator color="#d3bbff" className="mt-4" /> : null}
+
+            <View className="overflow-hidden rounded-[28px] border border-white/8 bg-white/4 shadow-2xl shadow-black/20">
+              <View className="px-4 pt-4 pb-3 border-b border-white/8 bg-white/3">
+                <Text size="sm" weight="bold" className="text-white/90 mb-1">Quick reply suggestions</Text>
+                <Text size="xs" className="text-white/45">Generated inline before you type the response.</Text>
+              </View>
+
+              <View className="px-4 py-4">
+                {analysis ? (
+                  <View className="mb-4 gap-2">
+                    <Text size="xs" className="uppercase tracking-[0.35em] text-white/35">Suggested replies</Text>
+                    <View className="gap-2.5">
+                      {(analysis.replies?.length ? analysis.replies : ['Hey! What’s up?', 'Hey you! How’s it going?', 'Hi! What are you up to?']).slice(0, 3).map((reply) => (
+                        <View key={reply} className="self-start max-w-[86%] rounded-full bg-white/6 border border-white/10 px-4 py-3 shadow-lg shadow-black/10">
+                          <View className="flex-row items-center gap-3">
+                            <Text numberOfLines={1} className="flex-1 text-[14px] leading-5 text-white/95 tracking-tight">
+                              {reply}
+                            </Text>
+                            <Pressable
+                              onPress={async () => {
+                                await ClipboardExpo.setStringAsync(reply);
+                                Alert.alert('Copied', 'Reply copied to clipboard.');
+                              }}
+                              className="rounded-full bg-white/5 p-2 border border-white/10 active:scale-[0.96] transition-all duration-200"
+                            >
+                              <Clipboard size={15} color="#efe9ff" />
+                            </Pressable>
+                          </View>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                ) : null}
+
+                <TextInput
+                  multiline
+                  value={conversation}
+                  onChangeText={setConversation}
+                  placeholder="Paste the conversation here..."
+                  placeholderTextColor="#958da1"
+                  className="min-h-[170px] bg-surface-container-lowest/80 border border-white/8 rounded-[24px] p-4 text-on-surface"
+                  textAlignVertical="top"
+                />
+
+                <Button
+                  label={analysisLoading ? 'Analyzing...' : 'Analyze'}
+                  className="mt-4 py-4 rounded-full bg-gradient-to-r from-violet-500 to-blue-500 shadow-lg shadow-violet-500/20"
+                  onPress={handleAnalyzeConversation}
+                  disabled={analysisLoading}
+                />
+
+                {analysisLoading ? <ActivityIndicator color="#d3bbff" className="mt-4" /> : null}
+              </View>
+            </View>
           </View>
         </View>
       </Modal>

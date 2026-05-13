@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import { useRouter } from 'expo-router';
-import { ArrowUp, ChevronDown, History, Paperclip, Plus, Search, Settings, Sparkles, UploadCloud } from 'lucide-react-native';
+import { ArrowUp, ChevronDown, Paperclip, Plus, Search, Settings, Sparkles, UploadCloud } from 'lucide-react-native';
 import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
@@ -113,6 +113,7 @@ export default function TonesScreen() {
   const [uploadLabel, setUploadLabel] = useState('');
 
   const selectedTone = normalizeToneName(activeTone);
+  const hasDraftText = draft.trim().length > 0;
 
   useEffect(() => {
     if (activeTone !== selectedTone) {
@@ -544,12 +545,6 @@ export default function TonesScreen() {
             </Text>
           </View>
           <View className="flex-row items-center gap-3">
-            <Pressable className="rounded-full border border-outline-variant px-3 py-2 active:bg-white/10" onPress={() => router.push('/history')}>
-              <View className="flex-row items-center gap-2">
-                <History size={16} color="#d3bbff" />
-                <Text size="sm">History</Text>
-              </View>
-            </Pressable>
             <Pressable className="rounded-full border border-outline-variant px-3 py-2 active:bg-white/10" onPress={() => router.push('/settings')}>
               <View className="flex-row items-center gap-2">
                 <Settings size={16} color="#d3bbff" />
@@ -702,13 +697,6 @@ export default function TonesScreen() {
                 </View>
 
                 <View className="border-t border-outline-variant bg-background px-4 py-4">
-                  {composerNotice ? (
-                    <View className="mb-3 rounded-2xl border border-primary/20 bg-primary/10 px-4 py-2">
-                      <Text size="sm" className="text-primary">
-                        {composerNotice}
-                      </Text>
-                    </View>
-                  ) : null}
                   {uploadProgress !== null ? (
                     <View className="mb-3 rounded-2xl border border-outline-variant bg-surface-container-high px-4 py-3">
                       <View className="mb-2 flex-row items-center justify-between gap-3">
@@ -759,15 +747,29 @@ export default function TonesScreen() {
                         onPress={handleSendMessage}
                         disabled={isStreaming || loadingChats || isUploading}
                         className={`flex-row items-center gap-2 rounded-full px-4 py-3 ${
-                          isStreaming || loadingChats || isUploading ? 'bg-white/5' : 'bg-primary'
+                          isStreaming || loadingChats || isUploading
+                            ? 'bg-white/5'
+                            : hasDraftText
+                              ? 'bg-primary'
+                              : 'bg-white/10'
                         }`}
                       >
                         {isStreaming ? (
                           <ActivityIndicator color="#f4effe" />
                         ) : (
-                          <ArrowUp size={16} color="#120f16" />
+                          <ArrowUp size={16} color={hasDraftText ? '#120f16' : '#d9d3e3'} />
                         )}
-                        <Text size="sm" weight="bold" className={isStreaming || loadingChats || isUploading ? 'text-on-surface-variant' : 'text-background'}>
+                        <Text
+                          size="sm"
+                          weight="bold"
+                          className={
+                            isStreaming || loadingChats || isUploading
+                              ? 'text-on-surface-variant'
+                              : hasDraftText
+                                ? 'text-background'
+                                : 'text-on-surface-variant'
+                          }
+                        >
                           Send
                         </Text>
                       </Pressable>
