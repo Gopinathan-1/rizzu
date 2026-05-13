@@ -96,6 +96,30 @@ export async function extractTextFromBinary(data: Uint8Array, mimeType: string, 
   return extractText(response).trim();
 }
 
+export async function generateVisionText(prompt: string, base64: string, mimeType: string) {
+  const ai = getClient();
+  
+  const response = await ai.models.generateContent({
+    model: GEMINI_MODEL,
+    contents: [
+      {
+        role: 'user',
+        parts: [
+          { text: prompt },
+          {
+            inlineData: {
+              mimeType,
+              data: base64,
+            },
+          },
+        ],
+      },
+    ],
+  });
+
+  return extractText(response);
+}
+
 export async function summarizeMemory(params: {
   chatTitle: string;
   extractedText: string;

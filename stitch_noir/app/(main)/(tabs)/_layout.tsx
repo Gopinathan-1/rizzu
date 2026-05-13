@@ -39,13 +39,7 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <UserCircle size={24} color={color} />,
         }}
       />
-      <Tabs.Screen
-        name="vault"
-        options={{
-          title: 'Vault',
-          tabBarIcon: ({ color }) => <ShieldCheck size={24} color={color} />,
-        }}
-      />
+      {/* Vault tab removed per request */}
     </Tabs>
   );
 }

@@ -7,6 +7,10 @@ const GEMINI_MODEL = 'gemini-3-flash-preview';
 
 const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY ?? '' });
 
+export function hasGeminiApiKey(): boolean {
+  return Boolean(GEMINI_API_KEY && GEMINI_API_KEY.trim().length > 0);
+}
+
 function requireApiKey() {
   if (!GEMINI_API_KEY) {
     throw new Error('Missing Gemini API key');

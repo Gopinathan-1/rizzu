@@ -15,9 +15,8 @@ import {
 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
-import { generateText } from '@/services/gemini';
-import { extractJson } from '@/services/geminiHelpers';
 import { addHistoryRecord, saveVaultRecord } from '@/services/appData';
+import { generateToneReplies } from '@/services/conversationAnalysis';
 import { useAppStore } from '@/store/useAppStore';
 
 export default function ReplyGeneratorScreen() {
@@ -52,11 +51,9 @@ export default function ReplyGeneratorScreen() {
 
     setLoading(true);
     try {
-      const prompt = `Generate 3 unique replies to the following conversation.\nApply the ${selectedTone} tone strictly.\nReplies should feel natural, not robotic.\nReturn as JSON array: ["reply1", "reply2", "reply3"]\n\nContext:\n${context}`;
-      const response = await generateText(prompt);
-      const parsed = extractJson<string[]>(response);
-      setReplies(parsed);
-      await addHistoryRecord({ type: 'reply', content: JSON.stringify({ tone: selectedTone, context, replies: parsed }) });
+      const result = await generateToneReplies(selectedTone, context);
+      setReplies(result.replies);
+      await addHistoryRecord({ type: 'reply', content: JSON.stringify({ tone: selectedTone, context, replies: result.replies }) });
     } catch (error) {
       Alert.alert('Generation failed', error instanceof Error ? error.message : 'Please try again.');
     } finally {

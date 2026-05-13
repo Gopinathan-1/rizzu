@@ -31,8 +31,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { generateText, generateVisionText } from '@/services/gemini';
 import { extractJson } from '@/services/geminiHelpers';
 import { addHistoryRecord, fetchTrendingTones, TrendingToneRecord } from '@/services/appData';
-import { analyzeConversation, type ConversationAnalysisResult } from '@/services/conversationAnalysis';
-import { ToneAnalysisPanel } from '@/components/tones/ToneAnalysisPanel';
+import { analyzeConversation, analyzeScreenshot, type ConversationAnalysisResult } from '@/services/conversationAnalysis';
 import { useAppStore } from '@/store/useAppStore';
 
 const fallbackTones: TrendingToneRecord[] = [
@@ -78,12 +77,16 @@ export default function HomeScreen() {
   const [tones, setTones] = useState<TrendingToneRecord[]>(fallbackTones);
   const [loadingTones, setLoadingTones] = useState(true);
   const [pasteModalVisible, setPasteModalVisible] = useState(false);
+  const [screenshotModalVisible, setScreenshotModalVisible] = useState(false);
   const [conversation, setConversation] = useState('');
   const [analysisLoading, setAnalysisLoading] = useState(false);
   const [analysisError, setAnalysisError] = useState('');
   const [analysis, setAnalysis] = useState<ConversationAnalysisResult | null>(null);
+  const [replies, setReplies] = useState<string[]>([]);
   const [screenshotLoading, setScreenshotLoading] = useState(false);
+  const [screenshotAsset, setScreenshotAsset] = useState<{ uri: string; base64: string; mimeType: string } | null>(null);
   const [screenshotPreview, setScreenshotPreview] = useState('');
+  const [draggingOver, setDraggingOver] = useState(false);
   const setActiveTone = useAppStore((state) => state.setActiveTone);
   const setAnalysisStore = useAppStore((state) => state.setAnalysis);
 
@@ -115,12 +118,14 @@ export default function HomeScreen() {
 
     setAnalysisLoading(true);
     setAnalysisError('');
+    setAnalysis(null);
+    setReplies([]);
 
     try {
-      setAnalysis(null);
       const result = await analyzeConversation(conversation);
       
       setAnalysis(result);
+      setReplies(result.replies ?? []);
       setAnalysisStore({ tone: result.tone, mood: result.mood, replyStyles: result.replyStyles });
 
       await addHistoryRecord({
@@ -155,30 +160,96 @@ export default function HomeScreen() {
       return;
     }
 
+    const asset = result.assets[0];
+    if (!asset.base64) return;
+
+    setScreenshotAsset({
+      uri: asset.uri,
+      base64: asset.base64,
+      mimeType: asset.mimeType ?? 'image/jpeg',
+    });
+    setScreenshotPreview('');
+    setAnalysis(null);
+    setReplies([]);
+    setAnalysisError('');
+    setScreenshotModalVisible(true);
+  };
+
+  const handleAnalyzeScreenshot = async () => {
+    if (!screenshotAsset?.base64) {
+      Alert.alert('Add screenshot', 'Choose a screenshot first.');
+      return;
+    }
+
     setScreenshotLoading(true);
     setAnalysisError('');
+    setAnalysis(null);
+    setReplies([]);
 
     try {
-      const asset = result.assets[0];
-      if (!asset.base64) throw new Error('Could not read image data');
-
-      const prompt = `Extract all the text from this conversation screenshot, then analyze:\n1. The emotional tone of the conversation\n2. The other person\'s mood and intent\n3. 3 tailored reply suggestions\n\nReturn structured JSON exactly in this shape: {"extractedText":"","tone":"","mood":"","replies":["","",""]}`;
-
-      const response = await generateVisionText(prompt, asset.base64, asset.mimeType ?? 'image/jpeg');
-      const parsed = extractJson<{ extractedText: string; tone: string; mood: string; replies: string[] }>(response);
-
-      setScreenshotPreview(parsed.extractedText);
-      setAnalysis({ tone: parsed.tone, mood: parsed.mood, replyStyles: parsed.replies, replies: parsed.replies });
-      setAnalysisStore({ tone: parsed.tone, mood: parsed.mood, replyStyles: parsed.replies, extractedText: parsed.extractedText });
+      const result = await analyzeScreenshot(screenshotAsset.base64, screenshotAsset.mimeType);
+      
+      setScreenshotPreview(result.extractedText);
+      setAnalysis({ tone: result.tone, mood: result.mood, replyStyles: result.replyStyles, replies: result.replies });
+      setReplies(result.replies ?? []);
+      setAnalysisStore({ tone: result.tone, mood: result.mood, replyStyles: result.replyStyles, extractedText: result.extractedText });
+      
       await addHistoryRecord({
         type: 'analysis',
-        content: JSON.stringify(parsed),
+        content: JSON.stringify(result),
       });
     } catch (error) {
-      setAnalysisError(error instanceof Error ? error.message : 'Screenshot analysis failed');
+      const message = error instanceof Error ? error.message : 'Screenshot analysis failed';
+      setAnalysisError(message);
+      console.error('Screenshot analysis error:', error);
     } finally {
       setScreenshotLoading(false);
     }
+  };
+
+  const handleDragOver = (e: any) => {
+    e.preventDefault?.();
+    e.stopPropagation?.();
+    setDraggingOver(true);
+  };
+
+  const handleDragLeave = (e: any) => {
+    e.preventDefault?.();
+    e.stopPropagation?.();
+    setDraggingOver(false);
+  };
+
+  const handleDrop = async (e: any) => {
+    e.preventDefault?.();
+    e.stopPropagation?.();
+    setDraggingOver(false);
+
+    const files = e.dataTransfer?.files;
+    if (!files || files.length === 0) return;
+
+    const file = files[0];
+    if (!file.type.startsWith('image/')) {
+      Alert.alert('Invalid file', 'Please drop an image file.');
+      return;
+    }
+
+    // Convert file to base64
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64String = event.target?.result as string;
+      const base64Data = base64String.split(',')[1]; // Remove data:image/... prefix
+
+      setScreenshotAsset({
+        uri: base64String,
+        base64: base64Data,
+        mimeType: file.type,
+      });
+      setScreenshotPreview('');
+      setAnalysis(null);
+      setReplies([]);
+      setAnalysisError('');
+    };
+    reader.readAsDataURL(file);
   };
 
   const openTone = (tone: TrendingToneRecord) => {
@@ -227,7 +298,7 @@ export default function HomeScreen() {
           </Card>
         </Pressable>
 
-        <Pressable onPress={handlePickScreenshot} disabled={screenshotLoading}>
+        <Pressable onPress={() => setScreenshotModalVisible(true)} disabled={screenshotLoading}>
           <Card className="flex-row items-center p-6 bg-surface-container border border-outline-variant rounded-xl active:bg-surface-high">
             <View className="mr-4">
               <Camera size={32} color="#d3bbff" />
@@ -246,15 +317,6 @@ export default function HomeScreen() {
           <Text className="text-red-200">{analysisError}</Text>
         </Card>
       ) : null}
-
-      {screenshotPreview ? (
-        <Card className="mt-4 p-4 bg-surface-container-low border border-outline-variant">
-          <Text variant="label" className="mb-2">Screenshot Text Preview</Text>
-          <Text className="text-on-surface-variant text-sm leading-relaxed">{screenshotPreview}</Text>
-        </Card>
-      ) : null}
-
-      {analysis ? <ToneAnalysisPanel analysis={analysis} /> : null}
 
       <View className="mt-10">
         <View className="flex-row items-center justify-between mb-4">
@@ -305,15 +367,7 @@ export default function HomeScreen() {
               </Card>
             </Pressable>
             
-            <Pressable className="flex-1" onPress={() => router.push('/(main)/(tabs)/vault')}>
-              <Card className="p-6 bg-surface-container border border-outline-variant aspect-square justify-between rounded-xl active:bg-surface-high">
-                <BarChart3 size={24} color="#ffb2b7" />
-                <View>
-                  <Text weight="bold" size="md" className="mb-1">The Vault</Text>
-                  <Text className="text-on-surface-variant text-xs">Saved elite replies.</Text>
-                </View>
-              </Card>
-            </Pressable>
+            {/* Vault quick-action removed */}
           </View>
         </View>
       </View>
@@ -375,28 +429,41 @@ export default function HomeScreen() {
               </View>
 
               <View className="px-4 py-4">
-                {analysis ? (
-                  <View className="mb-4 gap-2">
+                {replies.length > 0 && analysis ? (
+                  <View className="mb-4 gap-2.5">
                     <Text size="xs" className="uppercase tracking-[0.35em] text-white/35">Suggested replies</Text>
                     <View className="gap-2.5">
-                      {(analysis.replies?.length ? analysis.replies : ['Hey! What’s up?', 'Hey you! How’s it going?', 'Hi! What are you up to?']).slice(0, 3).map((reply) => (
-                        <View key={reply} className="self-start max-w-[86%] rounded-full bg-white/6 border border-white/10 px-4 py-3 shadow-lg shadow-black/10">
-                          <View className="flex-row items-center gap-3">
-                            <Text numberOfLines={1} className="flex-1 text-[14px] leading-5 text-white/95 tracking-tight">
-                              {reply}
-                            </Text>
-                            <Pressable
-                              onPress={async () => {
-                                await ClipboardExpo.setStringAsync(reply);
-                                Alert.alert('Copied', 'Reply copied to clipboard.');
-                              }}
-                              className="rounded-full bg-white/5 p-2 border border-white/10 active:scale-[0.96] transition-all duration-200"
-                            >
-                              <Clipboard size={15} color="#efe9ff" />
-                            </Pressable>
+                      {replies.slice(0, 3).map((reply, index) => {
+                        const toneLabel = analysis.replyStyles[index] ?? analysis.replyStyles[analysis.replyStyles.length - 1] ?? 'Friendly';
+
+                        return (
+                          <View key={`${reply}-${index}`} className="self-start max-w-[92%] rounded-[30px] bg-gradient-to-br from-white/8 to-white/[0.03] border border-white/10 px-4 py-3.5 shadow-lg shadow-black/10">
+                            <View className="flex-row items-center gap-3">
+                              <Text numberOfLines={1} className="flex-1 text-[14px] leading-5 text-white/95 tracking-tight">
+                                {reply}
+                              </Text>
+
+                              <View className="flex-row items-center gap-2">
+                                <View className="rounded-full border border-white/8 bg-white/6 px-3 py-1">
+                                  <Text size="xs" className="text-white/65 tracking-tight">
+                                    {toneLabel}
+                                  </Text>
+                                </View>
+
+                                <Pressable
+                                  onPress={async () => {
+                                    await ClipboardExpo.setStringAsync(reply);
+                                    Alert.alert('Copied', 'Reply copied to clipboard.');
+                                  }}
+                                  className="rounded-full bg-white/5 p-2 border border-white/10 active:scale-[0.96] transition-all duration-200"
+                                >
+                                  <Clipboard size={15} color="#efe9ff" />
+                                </Pressable>
+                              </View>
+                            </View>
                           </View>
-                        </View>
-                      ))}
+                        );
+                      })}
                     </View>
                   </View>
                 ) : null}
@@ -419,6 +486,120 @@ export default function HomeScreen() {
                 />
 
                 {analysisLoading ? <ActivityIndicator color="#d3bbff" className="mt-4" /> : null}
+              </View>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={screenshotModalVisible} animationType="slide" transparent>
+        <View className="flex-1 bg-black/70 justify-end">
+          <View className="bg-background rounded-t-[28px] p-5 pb-6 min-h-[68%] border-t border-white/10 shadow-2xl shadow-black/40">
+            <View className="flex-row items-center justify-between mb-4">
+              <View>
+                <Text variant="headline">Upload Screenshot</Text>
+                <Text size="xs" className="text-white/45">Quick replies appear inline in the same composer.</Text>
+              </View>
+              <Pressable onPress={() => setScreenshotModalVisible(false)}>
+                <Text className="text-primary">Close</Text>
+              </Pressable>
+            </View>
+
+            <View className="overflow-hidden rounded-[28px] border border-white/8 bg-white/4 shadow-2xl shadow-black/20">
+              <View className="px-4 pt-4 pb-3 border-b border-white/8 bg-white/3">
+                <Text size="sm" weight="bold" className="text-white/90 mb-1">Quick reply suggestions</Text>
+                <Text size="xs" className="text-white/45">Select a screenshot, analyze it, then copy a reply.</Text>
+              </View>
+
+              <View className="px-4 py-4">
+                {replies.length > 0 && analysis ? (
+                  <View className="mb-4 gap-2.5">
+                    <Text size="xs" className="uppercase tracking-[0.35em] text-white/35">Suggested replies</Text>
+                    <View className="gap-2.5">
+                      {replies.slice(0, 3).map((reply, index) => {
+                        const toneLabel = analysis.replyStyles[index] ?? analysis.replyStyles[analysis.replyStyles.length - 1] ?? 'Friendly';
+
+                        return (
+                          <View key={`${reply}-${index}`} className="self-start max-w-[92%] rounded-[30px] bg-gradient-to-br from-white/8 to-white/[0.03] border border-white/10 px-4 py-3.5 shadow-lg shadow-black/10">
+                            <View className="flex-row items-center gap-3">
+                              <Text numberOfLines={1} className="flex-1 text-[14px] leading-5 text-white/95 tracking-tight">
+                                {reply}
+                              </Text>
+
+                              <View className="flex-row items-center gap-2">
+                                <View className="rounded-full border border-white/8 bg-white/6 px-3 py-1">
+                                  <Text size="xs" className="text-white/65 tracking-tight">
+                                    {toneLabel}
+                                  </Text>
+                                </View>
+
+                                <Pressable
+                                  onPress={async () => {
+                                    await ClipboardExpo.setStringAsync(reply);
+                                    Alert.alert('Copied', 'Reply copied to clipboard.');
+                                  }}
+                                  className="rounded-full bg-white/5 p-2 border border-white/10 active:scale-[0.96] transition-all duration-200"
+                                >
+                                  <Clipboard size={15} color="#efe9ff" />
+                                </Pressable>
+                              </View>
+                            </View>
+                          </View>
+                        );
+                      })}
+                    </View>
+                  </View>
+                ) : null}
+
+                <View className="gap-3">
+                  {screenshotAsset ? (
+                    <View className="overflow-hidden rounded-[24px] border border-white/8 bg-black/20">
+                      <Image source={{ uri: screenshotAsset.uri }} className="h-40 w-full" resizeMode="cover" />
+                    </View>
+                  ) : null}
+
+                  <View
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                    className={`rounded-[24px] border-2 ${
+                      draggingOver
+                        ? 'border-primary bg-primary/10 shadow-lg shadow-primary/30'
+                        : 'border-white/10 bg-white/5'
+                    } px-4 py-4 active:scale-[0.99] transition-all duration-200`}
+                  >
+                    <View className="flex-row items-center gap-3 mb-2">
+                      <Camera size={18} color={draggingOver ? '#d3bbff' : '#ffffff'} />
+                      <Text weight="bold" className={draggingOver ? 'text-primary' : 'text-white/90'}>
+                        Drag & drop screenshot
+                      </Text>
+                    </View>
+                    <Text size="xs" className="text-white/45 mb-3">or</Text>
+                    <Pressable onPress={handlePickScreenshot} className="py-2">
+                      <Text weight="bold" className="text-primary">Choose Screenshot</Text>
+                    </Pressable>
+                    <Text size="xs" className="mt-1 text-white/45">Pick an image from your gallery.</Text>
+                  </View>
+
+                  <TextInput
+                    editable={false}
+                    value={screenshotPreview || 'OCR text will appear here after analysis.'}
+                    multiline
+                    placeholder="OCR text will appear here after analysis."
+                    placeholderTextColor="#958da1"
+                    className="min-h-[150px] bg-surface-container-lowest/80 border border-white/8 rounded-[24px] p-4 text-on-surface"
+                    textAlignVertical="top"
+                  />
+
+                  <Button
+                    label={screenshotLoading ? 'Analyzing Screenshot...' : 'Analyze Screenshot'}
+                    className="py-4 rounded-full bg-gradient-to-r from-violet-500 to-blue-500 shadow-lg shadow-violet-500/20"
+                    onPress={handleAnalyzeScreenshot}
+                    disabled={screenshotLoading || !screenshotAsset}
+                  />
+
+                  {screenshotLoading ? <ActivityIndicator color="#d3bbff" className="mt-2" /> : null}
+                </View>
               </View>
             </View>
           </View>
