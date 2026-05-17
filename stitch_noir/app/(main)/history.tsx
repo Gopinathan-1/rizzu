@@ -162,7 +162,7 @@ export default function HistoryScreen() {
   };
 
   return (
-    <ScreenContainer className="bg-background">
+    <ScreenContainer scrollable={false} className="bg-background">
       <View className="flex-row items-center py-4 h-16">
         <Pressable onPress={() => router.back()} className="p-2 -ml-2 rounded-lg active:bg-surface-high">
           <ChevronLeft size={24} color="#e8e0ee" />

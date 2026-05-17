@@ -47,6 +47,14 @@ type ChatGroup = {
   items: WorkspaceChat[];
 };
 
+type PendingUpload = {
+  id: string;
+  filename: string;
+  fileType: string;
+  uri?: string;
+  status: 'uploading' | 'processing';
+};
+
 function groupChatsByRecency(chats: WorkspaceChat[]): ChatGroup[] {
   const today = new Date();
   const todayLabel = today.toDateString();
@@ -111,6 +119,7 @@ export default function TonesScreen() {
   const [isTonePickerOpen, setIsTonePickerOpen] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [uploadLabel, setUploadLabel] = useState('');
+  const [pendingUploads, setPendingUploads] = useState<PendingUpload[]>([]);
 
   const selectedTone = normalizeToneName(activeTone);
   const hasDraftText = draft.trim().length > 0;
@@ -259,6 +268,7 @@ export default function TonesScreen() {
       const asset = result.assets[0];
       const filename = asset.name ?? 'upload';
       const mimeType = asset.mimeType ?? 'application/octet-stream';
+      const pendingId = `pending-${Date.now()}`;
 
       if (!isSupportedUpload(filename, mimeType)) {
         Alert.alert('Unsupported file', 'Please upload txt, md, pdf, docx, png, jpg, or jpeg files.');
@@ -267,12 +277,17 @@ export default function TonesScreen() {
 
       setIsUploading(true);
       setComposerNotice(`Uploading ${filename}...`);
+      setPendingUploads((current) => [
+        { id: pendingId, filename, fileType: mimeType, uri: asset.uri, status: 'uploading' },
+        ...current,
+      ]);
       stopProgress = startUploadProgress(filename);
       await uploadWorkspaceFile(asset as UploadSource, chatId);
       const uploadResult = await fetchWorkspaceUploads(chatId);
       if (uploadResult.data) {
         setUploads(uploadResult.data);
       }
+      setPendingUploads((current) => current.filter((item) => item.id !== pendingId));
       setUploadProgress(100);
       setComposerNotice(`Upload complete: ${filename}`);
       setTimeout(() => {
@@ -285,6 +300,7 @@ export default function TonesScreen() {
       setComposerNotice('');
       setUploadProgress(null);
       setUploadLabel('');
+      setPendingUploads([]);
     } finally {
       stopProgress?.();
       setIsUploading(false);
@@ -298,6 +314,7 @@ export default function TonesScreen() {
         const chatId = await ensureChat();
         const filename = file.name || 'upload';
         const mimeType = file.type || 'application/octet-stream';
+        const pendingId = `pending-${Date.now()}`;
 
         if (!isSupportedUpload(filename, mimeType)) {
           Alert.alert('Unsupported file', 'Please upload txt, md, pdf, docx, png, jpg, or jpeg files.');
@@ -306,6 +323,10 @@ export default function TonesScreen() {
 
         setIsUploading(true);
         setComposerNotice(`Uploading ${filename}...`);
+        setPendingUploads((current) => [
+          { id: pendingId, filename, fileType: mimeType, uri: URL.createObjectURL(file), status: 'uploading' },
+          ...current,
+        ]);
         stopProgress = startUploadProgress(filename);
         await uploadWorkspaceFile({
           file,
@@ -317,6 +338,7 @@ export default function TonesScreen() {
         if (uploadResult.data) {
           setUploads(uploadResult.data);
         }
+        setPendingUploads((current) => current.filter((item) => item.id !== pendingId));
         setUploadProgress(100);
         setComposerNotice(`Upload complete: ${filename}`);
         setTimeout(() => {
@@ -329,6 +351,7 @@ export default function TonesScreen() {
         setComposerNotice('');
         setUploadProgress(null);
         setUploadLabel('');
+        setPendingUploads([]);
       } finally {
         stopProgress?.();
         setIsUploading(false);
@@ -589,6 +612,15 @@ export default function TonesScreen() {
                         {selectedChat.title}
                       </Text>
                     </View>
+                    <Pressable
+                      onPress={() => void handleNewChat()}
+                      className="rounded-full border border-outline-variant px-3 py-2 active:bg-white/10"
+                    >
+                      <View className="flex-row items-center gap-2">
+                        <Plus size={14} color="#d3bbff" />
+                        <Text size="sm">New chat</Text>
+                      </View>
+                    </Pressable>
                   </View>
 
                   <View className="flex-1 rounded-[32px] border border-outline-variant bg-surface-container/50 px-4 py-4">
@@ -629,6 +661,23 @@ export default function TonesScreen() {
                           </Pressable>
                         </View>
                         <View className="gap-2">
+                              {pendingUploads.map((upload) => (
+                                <View key={upload.id} className="rounded-2xl border border-dashed border-primary/40 bg-primary/5 p-3">
+                                  <View className="flex-row items-center justify-between gap-3">
+                                    <View className="flex-1">
+                                      <Text weight="semibold" numberOfLines={1}>
+                                        {upload.filename}
+                                      </Text>
+                                      <Text size="xs" className="mt-1 text-on-surface-variant">
+                                        {upload.status === 'uploading' ? 'Uploading...' : 'Processing...'}
+                                      </Text>
+                                    </View>
+                                    {upload.uri && upload.fileType.startsWith('image/') ? (
+                                      <Image source={{ uri: upload.uri }} className="h-14 w-14 rounded-lg" />
+                                    ) : null}
+                                  </View>
+                                </View>
+                              ))}
                           {uploads.map((upload) => (
                             <View key={upload.id} className="rounded-2xl border border-outline-variant bg-background p-3">
                               <View className="flex-row items-start justify-between gap-3">
@@ -715,38 +764,41 @@ export default function TonesScreen() {
                       </View>
                     </View>
                   ) : null}
-                  <View className="rounded-[28px] border border-outline-variant bg-surface-container-high px-3 py-3 shadow-lg shadow-black/20">
-                    <TextInput
-                      value={draft}
-                      onChangeText={setDraft}
-                      multiline
-                      returnKeyType="send"
-                      submitBehavior="submit"
-                      onKeyPress={handleComposerKeyPress}
-                      onSubmitEditing={() => void handleSendMessage()}
-                      blurOnSubmit={false}
-                      placeholder="Ask Stitch Noir anything about your memory, chats, or uploads..."
-                      placeholderTextColor="#958da1"
-                      className="min-h-[92px] text-base text-on-surface"
-                      textAlignVertical="top"
-                    />
-                    <View className="mt-3 flex-row items-center justify-between gap-3">
-                      <Pressable onPress={handlePickUpload} className="flex-row items-center gap-2 rounded-full border border-outline-variant px-3 py-2 active:bg-white/10">
-                        <Paperclip size={16} color="#d3bbff" />
-                        <Text size="sm">Upload</Text>
+                  <View className="rounded-[32px] border border-outline-variant bg-surface-container px-4 py-3 shadow-lg shadow-black/20">
+                    <View className="flex-row items-center gap-3">
+                      <Pressable
+                        onPress={handlePickUpload}
+                        className="h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-background/40 active:bg-white/10"
+                      >
+                        <Paperclip size={22} color="#d3bbff" />
                       </Pressable>
+
                       <Pressable
                         onPress={() => setIsTonePickerOpen(true)}
-                        className="flex-row items-center gap-2 rounded-full border border-outline-variant bg-black/20 px-3 py-2 active:bg-white/10"
+                        className="h-11 flex-row items-center gap-2 rounded-full border border-white/10 bg-background/30 px-3 active:bg-white/10"
                       >
                         <Sparkles size={16} color="#d3bbff" />
-                        <Text size="sm">{selectedTone}</Text>
+                        <Text size="sm" className="text-on-surface">{selectedTone}</Text>
                         <ChevronDown size={14} color="#958da1" />
                       </Pressable>
+
+                      <TextInput
+                        value={draft}
+                        onChangeText={setDraft}
+                        multiline={false}
+                        returnKeyType="send"
+                        onKeyPress={handleComposerKeyPress}
+                        onSubmitEditing={() => void handleSendMessage()}
+                        blurOnSubmit
+                        placeholder="Ask anything"
+                        placeholderTextColor="#8f879b"
+                        className="h-11 flex-1 text-base text-on-surface pl-1"
+                      />
+
                       <Pressable
                         onPress={handleSendMessage}
                         disabled={isStreaming || loadingChats || isUploading}
-                        className={`flex-row items-center gap-2 rounded-full px-4 py-3 ${
+                        className={`h-11 w-11 items-center justify-center rounded-full ${
                           isStreaming || loadingChats || isUploading
                             ? 'bg-white/5'
                             : hasDraftText
@@ -757,21 +809,8 @@ export default function TonesScreen() {
                         {isStreaming ? (
                           <ActivityIndicator color="#f4effe" />
                         ) : (
-                          <ArrowUp size={16} color={hasDraftText ? '#120f16' : '#d9d3e3'} />
+                          <ArrowUp size={18} color={hasDraftText ? '#120f16' : '#d9d3e3'} />
                         )}
-                        <Text
-                          size="sm"
-                          weight="bold"
-                          className={
-                            isStreaming || loadingChats || isUploading
-                              ? 'text-on-surface-variant'
-                              : hasDraftText
-                                ? 'text-background'
-                                : 'text-on-surface-variant'
-                          }
-                        >
-                          Send
-                        </Text>
                       </Pressable>
                     </View>
                   </View>

@@ -1,4 +1,4 @@
-import { View } from 'react-native';
+import { View, Image } from 'react-native';
 import Markdown from 'react-native-markdown-display';
 import { Text } from '@/components/ui/Text';
 
@@ -7,9 +7,10 @@ export type ChatMessageBubbleProps = {
   content: string;
   createdAt?: string;
   streaming?: boolean;
+  imageUri?: string | null;
 };
 
-export function ChatMessageBubble({ role, content, createdAt, streaming = false }: ChatMessageBubbleProps) {
+export function ChatMessageBubble({ role, content, createdAt, streaming = false, imageUri }: ChatMessageBubbleProps) {
   const isUser = role === 'user';
 
   return (
@@ -23,6 +24,11 @@ export function ChatMessageBubble({ role, content, createdAt, streaming = false 
               : 'border-outline-variant bg-surface-container-high'
         }`}
       >
+        {imageUri ? (
+          <View className="mb-3 overflow-hidden rounded-2xl border border-outline-variant bg-black/20">
+            <Image source={{ uri: imageUri }} className="h-56 w-full" resizeMode="contain" />
+          </View>
+        ) : null}
         <Markdown
           style={{
             body: {

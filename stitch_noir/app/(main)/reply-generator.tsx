@@ -78,7 +78,7 @@ export default function ReplyGeneratorScreen() {
   };
 
   return (
-    <ScreenContainer className="bg-background">
+    <ScreenContainer scrollable={false} className="bg-background">
       <View className="flex-row items-center justify-between py-4 h-16">
         <Text variant="headline" className="text-2xl tracking-tighter">Aura AI</Text>
         <View className="flex-row items-center gap-4">

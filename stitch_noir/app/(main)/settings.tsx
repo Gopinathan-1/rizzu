@@ -7,12 +7,12 @@ import { Button } from '@/components/ui/Button';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { useAppStore } from '@/store/useAppStore';
 import { authService } from '@/services/auth';
-import { ChevronLeft, User, Bell, Shield, CreditCard, HelpCircle, LogOut, ChevronRight, Zap } from 'lucide-react-native';
+import { ChevronLeft, User, LogOut, ChevronRight } from 'lucide-react-native';
 
 export default function SettingsScreen() {
   const router = useRouter();
   const user = useAppStore((state) => state.user);
-  const isPremium = useAppStore((state) => state.isPremium);
+  const setUser = useAppStore((state) => state.setUser);
   const logout = useAppStore((state) => state.logout);
   const [fullName, setFullName] = useState(user?.full_name ?? '');
   const [saving, setSaving] = useState(false);
@@ -46,6 +46,13 @@ export default function SettingsScreen() {
       return;
     }
 
+    // update local store so UI updates immediately
+    try {
+      setUser({ ...(user ?? {}), full_name: fullName.trim() });
+    } catch (e) {
+      // ignore
+    }
+
     Alert.alert('Saved', 'Profile updated successfully.');
   };
 
@@ -65,7 +72,7 @@ export default function SettingsScreen() {
   );
 
   return (
-    <ScreenContainer>
+    <ScreenContainer scrollable={false}>
       <View className="flex-row items-center py-4">
         <Pressable onPress={() => router.back()}>
           <ChevronLeft size={24} color="#e8e0ee" />
@@ -83,56 +90,30 @@ export default function SettingsScreen() {
         </View>
       </Card>
 
-      <Card className="mt-6 p-6 bg-surface-container border border-outline-variant">
-        <Text variant="label" className="mb-3">Edit Profile</Text>
-        <TextInput
-          value={fullName}
-          onChangeText={setFullName}
-          placeholder="Full name"
-          placeholderTextColor="#958da1"
-          className="bg-surface-container-lowest border border-outline-variant rounded-2xl px-4 py-4 text-on-surface"
-        />
-        <Button
-          label={saving ? 'Saving...' : 'Save Profile'}
-          className="mt-4 rounded-2xl py-4"
-          onPress={handleSaveProfile}
-          disabled={saving}
-        />
-      </Card>
-
-      <Card className="mt-6 p-6 bg-secondary-container/20 border border-secondary/20">
-        <View className="flex-row justify-between items-start mb-4">
-          <View>
-            <Text weight="bold" size="lg">Upgrade to Elite</Text>
-            <Text className="text-outline text-sm mt-1">Unlock GPT-5 Turbo and Unlimited analysis.</Text>
-          </View>
-          <Zap size={24} color="#adc6ff" />
-        </View>
-        <Button
-          label={isPremium ? 'Elite Active' : 'View Plans'}
-          variant="secondary"
-          size="sm"
-          className="rounded-xl py-3"
-          onPress={() => router.push('/paywall')}
-        />
-      </Card>
+      {/* Removed standalone Edit Profile and Upgrade card per settings cleanup */}
 
       <View className="mt-10">
         <Text variant="label" className="mb-2">Account</Text>
-        <MenuItem icon={User} label="Personal Information" value={user?.email ? 'Connected' : 'Offline'} />
-        <MenuItem icon={Bell} label="Notifications" value="On" />
-        <MenuItem icon={Shield} label="Privacy & Security" />
-      </View>
-
-      <View className="mt-8">
-        <Text variant="label" className="mb-2">Billing</Text>
-        <MenuItem icon={CreditCard} label="Payment Methods" value={isPremium ? 'Elite' : 'Free'} onPress={() => router.push('/paywall')} />
-        <MenuItem icon={Zap} label="Subscription Plan" value={isPremium ? 'Elite' : 'Free'} onPress={() => router.push('/paywall')} />
+        <Card className="p-4 bg-surface-container border border-outline-variant mb-4">
+          <Text weight="bold" size="sm" className="mb-2">Personal Information</Text>
+          <TextInput
+            value={fullName}
+            onChangeText={setFullName}
+            placeholder="Full name"
+            placeholderTextColor="#958da1"
+            className="bg-surface-container-lowest border border-outline-variant rounded-2xl px-4 py-3 text-on-surface"
+          />
+          <Button
+            label={saving ? 'Saving...' : 'Save Profile'}
+            className="mt-3 rounded-2xl py-3"
+            onPress={handleSaveProfile}
+            disabled={saving}
+          />
+        </Card>
       </View>
 
       <View className="mt-8">
         <Text variant="label" className="mb-2">Support</Text>
-        <MenuItem icon={HelpCircle} label="Help Center" />
         <MenuItem icon={LogOut} label="Log Out" color="#ffb2b7" onPress={handleLogout} />
       </View>
 

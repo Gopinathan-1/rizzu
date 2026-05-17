@@ -92,6 +92,7 @@ Deno.serve(async (request) => {
         .from('memories')
         .select('id, user_id, chat_id, summary, created_at')
         .eq('user_id', user.id)
+        .eq('chat_id', chatId)
         .order('created_at', { ascending: false })
         .limit(6),
       db

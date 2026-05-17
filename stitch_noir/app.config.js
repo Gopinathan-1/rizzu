@@ -7,7 +7,6 @@ module.exports = {
     icon: './assets/images/icon.png',
     scheme: 'stitchnoir',
     userInterfaceStyle: 'automatic',
-    newArchEnabled: false,
     splash: {
       image: './assets/images/splash-icon.png',
       resizeMode: 'contain',
@@ -21,8 +20,6 @@ module.exports = {
         foregroundImage: './assets/images/adaptive-icon.png',
         backgroundColor: '#ffffff',
       },
-      edgeToEdgeEnabled: true,
-      predictiveBackGestureEnabled: false,
     },
     web: {
       bundler: 'metro',
