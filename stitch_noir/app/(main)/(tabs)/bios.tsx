@@ -6,7 +6,7 @@ import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { Button } from '@/components/ui/Button';
-import { History, Settings, Copy, Share2, Sparkles } from 'lucide-react-native';
+import { Settings, Copy, Share2, Sparkles } from 'lucide-react-native';
 import { generateText } from '@/services/gemini';
 import { extractJson } from '@/services/geminiHelpers';
 import { useAppStore } from '@/store/useAppStore';
@@ -126,7 +126,7 @@ FORMAT:
         </View>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
+        <View className="px-0">
           <View className="mt-8 mb-6">
             <Text variant="display" className="text-4xl">Bio Writer</Text>
             <Text className="text-on-surface-variant mt-2 text-lg font-inter">
@@ -217,7 +217,7 @@ FORMAT:
               <Text className="text-on-surface-variant text-center">Describe your vibe above, select a tone, and generate your bios.</Text>
             </View>
           ) : null}
-        </ScrollView>
+        </View>
       </ScreenContainer>
   );
 }

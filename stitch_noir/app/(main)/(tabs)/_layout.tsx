@@ -28,14 +28,14 @@ export default function TabLayout() {
       <Tabs.Screen
         name="tones"
         options={{
-          title: 'Tones',
+          title: 'Tone',
           tabBarIcon: ({ color }) => <Sparkles size={24} color={color} />,
         }}
       />
       <Tabs.Screen
         name="bios"
         options={{
-          title: 'Bios',
+          title: 'Bio',
           tabBarIcon: ({ color }) => <UserCircle size={24} color={color} />,
         }}
       />

@@ -602,8 +602,8 @@ export default function TonesScreen() {
                 behavior={Platform.OS === 'ios' ? 'padding' : undefined}
                 keyboardVerticalOffset={0}
               >
-                <View className="flex-1 px-4 pt-4">
-                  <View className="mb-4 flex-row items-center justify-between gap-3 rounded-3xl border border-outline-variant bg-surface-container px-4 py-3">
+                <View className="flex-1 px-2 py-2">
+                  <View className="mb-4 flex-row items-center justify-between gap-3 px-4 py-3">
                     <View className="flex-1">
                       <Text weight="bold" size="xl" numberOfLines={1}>
                         {selectedChat.title}
@@ -620,32 +620,31 @@ export default function TonesScreen() {
                     </Pressable>
                   </View>
 
-                  <View className="flex-1 rounded-[32px] border border-outline-variant bg-surface-container/50 px-4 py-4">
-                    <FlatList
-                      ref={listRef}
-                      data={messages}
-                      keyExtractor={(item) => item.id}
-                      renderItem={({ item }) => <ChatMessageBubble role={item.role} content={item.content} createdAt={item.created_at} />}
-                      onScroll={({ nativeEvent }) => {
-                        if (nativeEvent.contentOffset.y < 80) {
-                          void handleLoadOlderMessages();
-                        }
-                      }}
-                      scrollEventThrottle={200}
-                      contentContainerStyle={{ paddingBottom: 18 }}
-                      showsVerticalScrollIndicator={false}
-                      keyboardShouldPersistTaps="handled"
-                      ListHeaderComponent={
-                        loadingMessages ? (
-                          <View className="items-center py-8">
-                            <ActivityIndicator color="#d3bbff" />
-                          </View>
-                        ) : null
+                  <FlatList
+                    ref={listRef}
+                    data={messages}
+                    keyExtractor={(item) => item.id}
+                    renderItem={({ item }) => <ChatMessageBubble role={item.role} content={item.content} createdAt={item.created_at} />}
+                    onScroll={({ nativeEvent }) => {
+                      if (nativeEvent.contentOffset.y < 80) {
+                        void handleLoadOlderMessages();
                       }
-                      ListFooterComponent={
-                        <>
-                          {loadingOlder ? (
-                            <View className="items-center py-4">
+                    }}
+                    scrollEventThrottle={200}
+                    contentContainerStyle={{ paddingHorizontal: 8, paddingTop: 8, paddingBottom: 16 }}
+                    showsVerticalScrollIndicator={false}
+                    keyboardShouldPersistTaps="handled"
+                    ListHeaderComponent={
+                      loadingMessages ? (
+                        <View className="items-center py-8">
+                          <ActivityIndicator color="#d3bbff" />
+                        </View>
+                      ) : null
+                    }
+                    ListFooterComponent={
+                      <>
+                        {loadingOlder ? (
+                          <View className="items-center py-4">
 
                     {uploads.length > 0 ? (
                       <View className="mt-4 rounded-[28px] border border-outline-variant bg-surface-container/60 p-4">
@@ -730,16 +729,15 @@ export default function TonesScreen() {
                               <ActivityIndicator color="#d3bbff" size="small" />
                             </View>
                           ) : null}
-                          {isStreaming ? (
-                            <ChatMessageBubble role="assistant" content={streamingText || 'Thinking...'} streaming />
-                          ) : null}
-                        </>
-                      }
-                      onContentSizeChange={() => {
-                        requestAnimationFrame(() => listRef.current?.scrollToEnd({ animated: false }));
-                      }}
-                    />
-                  </View>
+                        {isStreaming ? (
+                          <ChatMessageBubble role="assistant" content={streamingText || 'Thinking...'} streaming />
+                        ) : null}
+                      </>
+                    }
+                    onContentSizeChange={() => {
+                      requestAnimationFrame(() => listRef.current?.scrollToEnd({ animated: false }));
+                    }}
+                  />
                 </View>
 
                 <View className="border-t border-outline-variant bg-background px-4 py-4">
