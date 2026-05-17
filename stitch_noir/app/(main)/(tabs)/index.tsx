@@ -342,9 +342,6 @@ export default function HomeScreen() {
           <Text variant="headline" className="text-2xl tracking-tighter">Stitch Noir</Text>
         </View>
         <View className="flex-row items-center gap-4">
-          <Pressable className="p-2 rounded-lg active:bg-surface-high" onPress={() => router.push('/history')}>
-            <History size={22} color="#f5f5f5" />
-          </Pressable>
           <Pressable className="p-2 rounded-lg active:bg-surface-high" onPress={() => router.push('/settings')}>
             <Settings size={22} color="#f5f5f5" />
           </Pressable>

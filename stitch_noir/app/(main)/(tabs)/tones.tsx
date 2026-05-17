@@ -569,10 +569,7 @@ export default function TonesScreen() {
           </View>
           <View className="flex-row items-center gap-3">
             <Pressable className="rounded-full border border-outline-variant px-3 py-2 active:bg-white/10" onPress={() => router.push('/settings')}>
-              <View className="flex-row items-center gap-2">
-                <Settings size={16} color="#d3bbff" />
-                <Text size="sm">Settings</Text>
-              </View>
+              <Settings size={16} color="#d3bbff" />
             </Pressable>
             <View className="rounded-full border border-outline-variant px-3 py-2">
               <Text size="sm" className="text-primary">

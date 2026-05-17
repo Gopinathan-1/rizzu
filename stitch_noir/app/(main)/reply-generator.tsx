@@ -5,7 +5,6 @@ import { Card } from '@/components/ui/Card';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { Button } from '@/components/ui/Button';
 import {
-  History,
   Settings,
   Heart,
   Share2,
@@ -82,9 +81,6 @@ export default function ReplyGeneratorScreen() {
       <View className="flex-row items-center justify-between py-4 h-16">
         <Text variant="headline" className="text-2xl tracking-tighter">Aura AI</Text>
         <View className="flex-row items-center gap-4">
-          <Pressable className="p-2 rounded-lg active:bg-surface-high" onPress={() => router.push('/history')}>
-            <History size={22} color="#f5f5f5" />
-          </Pressable>
           <Pressable className="p-2 rounded-lg active:bg-surface-high" onPress={() => router.push('/settings')}>
             <Settings size={22} color="#f5f5f5" />
           </Pressable>
