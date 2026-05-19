@@ -117,10 +117,7 @@ export default function SettingsScreen() {
         <MenuItem icon={LogOut} label="Log Out" color="#ffb2b7" onPress={handleLogout} />
       </View>
 
-      <View className="mt-12 mb-10 items-center">
-        <Text className="text-outline text-xs">Aura AI v1.0.42</Text>
-        <Text className="text-outline text-[10px] mt-1">Crafted with precision in San Francisco</Text>
-      </View>
+      {/* Branding removed per request */}
     </ScreenContainer>
   );
 }

@@ -1,35 +1,45 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
+  View,
   FlatList,
   KeyboardAvoidingView,
-  Modal,
-  Platform,
   Pressable,
   TextInput,
-  View,
+  ActivityIndicator,
+  Alert,
+  Image,
+  Modal,
+  Platform,
 } from 'react-native';
-import * as DocumentPicker from 'expo-document-picker';
-import { useRouter } from 'expo-router';
-import { ArrowUp, ChevronDown, Paperclip, Plus, Search, Settings, Sparkles, UploadCloud } from 'lucide-react-native';
 import { Text } from '@/components/ui/Text';
-import { Button } from '@/components/ui/Button';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
-import { MemoryDrawer } from '@/components/tones/MemoryDrawer';
+import { Button } from '@/components/ui/Button';
 import { ChatMessageBubble } from '@/components/tones/ChatMessageBubble';
+import { MemoryDrawer } from '@/components/tones/MemoryDrawer';
 import {
-  createWorkspaceChat,
-  createWorkspaceMessage,
-  deleteWorkspaceChat,
+  Settings,
+  Plus,
+  Paperclip,
+  Sparkles,
+  ChevronDown,
+  ArrowUp,
+  Search,
+  UploadCloud,
+} from 'lucide-react-native';
+import { useRouter } from 'expo-router';
+import * as DocumentPicker from 'expo-document-picker';
+import {
   fetchWorkspaceChats,
   fetchWorkspaceMessages,
   fetchWorkspaceUploads,
+  createWorkspaceChat,
+  createWorkspaceMessage,
+  streamWorkspaceReply,
   generateChatTitle,
+  renameWorkspaceChat,
+  deleteWorkspaceChat,
   reindexWorkspaceUpload,
   removeWorkspaceUpload,
-  renameWorkspaceChat,
-  streamWorkspaceReply,
   updateChatTitleIfNeeded,
   uploadWorkspaceFile,
   type WorkspaceChat,
@@ -571,11 +581,6 @@ export default function TonesScreen() {
             <Pressable className="rounded-full border border-outline-variant px-3 py-2 active:bg-white/10" onPress={() => router.push('/settings')}>
               <Settings size={16} color="#d3bbff" />
             </Pressable>
-            <View className="rounded-full border border-outline-variant px-3 py-2">
-              <Text size="sm" className="text-primary">
-                {user?.full_name ?? user?.email ?? 'Signed in'}
-              </Text>
-            </View>
           </View>
         </View>
 
@@ -760,54 +765,83 @@ export default function TonesScreen() {
                     </View>
                   ) : null}
                   <View className="rounded-[32px] border border-outline-variant bg-surface-container px-4 py-3 shadow-lg shadow-black/20">
-                    <View className="flex-row items-center gap-3">
-                      <Pressable
-                        onPress={handlePickUpload}
-                        className="h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-background/40 active:bg-white/10"
-                      >
-                        <Paperclip size={22} color="#d3bbff" />
-                      </Pressable>
+                    {Platform.OS === 'web' ? (
+                      <View className="flex-row items-center gap-3">
+                        <Pressable
+                          onPress={handlePickUpload}
+                          className="h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-background/40 active:bg-white/10"
+                        >
+                          <Paperclip size={22} color="#d3bbff" />
+                        </Pressable>
 
-                      <Pressable
-                        onPress={() => setIsTonePickerOpen(true)}
-                        className="h-11 flex-row items-center gap-2 rounded-full border border-white/10 bg-background/30 px-3 active:bg-white/10"
-                      >
-                        <Sparkles size={16} color="#d3bbff" />
-                        <Text size="sm" className="text-on-surface">{selectedTone}</Text>
-                        <ChevronDown size={14} color="#958da1" />
-                      </Pressable>
+                        <Pressable
+                          onPress={() => setIsTonePickerOpen(true)}
+                          className="h-11 flex-row items-center gap-2 rounded-full border border-white/10 bg-background/30 px-3 active:bg-white/10"
+                        >
+                          <Sparkles size={16} color="#d3bbff" />
+                          <Text size="sm" className="text-on-surface">{selectedTone}</Text>
+                          <ChevronDown size={14} color="#958da1" />
+                        </Pressable>
 
-                      <TextInput
-                        value={draft}
-                        onChangeText={setDraft}
-                        multiline={false}
-                        returnKeyType="send"
-                        onKeyPress={handleComposerKeyPress}
-                        onSubmitEditing={() => void handleSendMessage()}
-                        blurOnSubmit
-                        placeholder="Ask anything"
-                        placeholderTextColor="#8f879b"
-                        className="h-11 flex-1 text-base text-on-surface pl-1"
-                      />
+                        <TextInput
+                          value={draft}
+                          onChangeText={setDraft}
+                          multiline={false}
+                          returnKeyType="send"
+                          onKeyPress={handleComposerKeyPress}
+                          onSubmitEditing={() => void handleSendMessage()}
+                          blurOnSubmit
+                          placeholder="Ask anything"
+                          placeholderTextColor="#8f879b"
+                          className="h-11 flex-1 text-base text-on-surface pl-1"
+                        />
 
-                      <Pressable
-                        onPress={handleSendMessage}
-                        disabled={isStreaming || loadingChats || isUploading}
-                        className={`h-11 w-11 items-center justify-center rounded-full ${
-                          isStreaming || loadingChats || isUploading
-                            ? 'bg-white/5'
-                            : hasDraftText
-                              ? 'bg-primary'
-                              : 'bg-white/10'
-                        }`}
-                      >
-                        {isStreaming ? (
-                          <ActivityIndicator color="#f4effe" />
-                        ) : (
-                          <ArrowUp size={18} color={hasDraftText ? '#120f16' : '#d9d3e3'} />
-                        )}
-                      </Pressable>
-                    </View>
+                        <Pressable
+                          onPress={handleSendMessage}
+                          disabled={isStreaming || loadingChats || isUploading}
+                          className={`h-11 w-11 items-center justify-center rounded-full ${
+                            isStreaming || loadingChats || isUploading
+                              ? 'bg-white/5'
+                              : hasDraftText
+                                ? 'bg-primary'
+                                : 'bg-white/10'
+                          }`}
+                        >
+                          {isStreaming ? (
+                            <ActivityIndicator color="#f4effe" />
+                          ) : (
+                            <ArrowUp size={18} color={hasDraftText ? '#120f16' : '#d9d3e3'} />
+                          )}
+                        </Pressable>
+                      </View>
+                    ) : (
+                      <View className="flex-row items-center gap-3">
+                        <Pressable className="px-3 py-2 rounded-full bg-background/30 mr-3">
+                          <Plus size={20} color="#d3bbff" />
+                        </Pressable>
+                        <TextInput
+                          value={draft}
+                          onChangeText={setDraft}
+                          multiline={false}
+                          returnKeyType="send"
+                          onKeyPress={handleComposerKeyPress}
+                          onSubmitEditing={() => void handleSendMessage()}
+                          blurOnSubmit
+                          placeholder="How can I help you today?"
+                          placeholderTextColor="#bfb7c9"
+                          className="flex-1 text-base text-on-surface"
+                        />
+                        <View className="flex-row items-center gap-3 ml-3">
+                          <Pressable onPress={() => setIsTonePickerOpen(true)} className="px-3 py-2 rounded-full bg-background/20 flex-row items-center gap-2">
+                            <Text className="text-on-surface">{selectedTone}</Text>
+                            <ChevronDown size={14} color="#958da1" />
+                          </Pressable>
+                          <Pressable className="px-2 py-1 rounded-full bg-background/20">
+                            <Sparkles size={18} color="#d3bbff" />
+                          </Pressable>
+                        </View>
+                      </View>
+                    )}
                   </View>
                 </View>
               </KeyboardAvoidingView>

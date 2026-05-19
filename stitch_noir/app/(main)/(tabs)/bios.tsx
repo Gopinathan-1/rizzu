@@ -1,31 +1,29 @@
 import React, { useEffect, useState } from 'react';
-import { View, TextInput, Pressable, ActivityIndicator, Alert, ScrollView, Image } from 'react-native';
-import * as Clipboard from 'expo-clipboard';
+import { View, TextInput, Pressable, ActivityIndicator, Alert, ScrollView, Image, Modal, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { Button } from '@/components/ui/Button';
-import { Settings, Copy, Share2, Sparkles } from 'lucide-react-native';
+import { Settings, Sparkles, Paperclip, ArrowUp, ChevronDown, Plus } from 'lucide-react-native';
+import { TONE_OPTIONS, normalizeToneName } from '@/lib/tonePrompts';
+import { useAppStore } from '@/store/useAppStore';
 import { generateText } from '@/services/gemini';
 import { extractJson } from '@/services/geminiHelpers';
-import { useAppStore } from '@/store/useAppStore';
+import { CopyButton } from '@/components/tones/CopyButton';
 
 export default function BiosScreen() {
   const router = useRouter();
   const activeTone = useAppStore((state) => state.activeTone);
+  const setActiveTone = useAppStore((state) => state.setActiveTone);
   const user = useAppStore((state) => state.user);
-  
+
   const [bioInput, setBioInput] = useState('');
-  const [selectedTone, setSelectedTone] = useState(activeTone || 'Witty');
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<{ text: string; tone: string }[]>([]);
+  const [isTonePickerOpen, setIsTonePickerOpen] = useState(false);
 
-  useEffect(() => {
-    if (activeTone) {
-      setSelectedTone(activeTone);
-    }
-  }, [activeTone]);
+  const selectedTone = normalizeToneName(activeTone ?? 'Witty');
 
   const handleGenerate = async () => {
     if (!bioInput.trim()) {
@@ -104,11 +102,6 @@ FORMAT:
     }
   };
 
-  const handleCopy = async (text: string) => {
-    await Clipboard.setStringAsync(text);
-    Alert.alert('Copied', 'Text copied to clipboard.');
-  };
-
   return (
     <ScreenContainer scrollable={false} className="bg-background">
       <View className="flex-row items-center py-4 h-16">
@@ -120,103 +113,155 @@ FORMAT:
           <Pressable className="p-2 rounded-lg active:bg-surface-high" onPress={() => router.push('/settings')}>
             <Settings size={22} color="#f5f5f5" />
           </Pressable>
-          <View className="rounded-full border border-outline-variant px-3 py-2">
-            <Text size="sm" className="text-primary">{user?.full_name ?? user?.email ?? 'Signed in'}</Text>
-          </View>
         </View>
       </View>
 
-        <View className="px-0">
+        <View className="flex-1 px-4">
           <View className="mt-8 mb-6">
-            <Text variant="display" className="text-4xl">Bio Writer</Text>
-            <Text className="text-on-surface-variant mt-2 text-lg font-inter">
-              Engineer your digital persona with precision.
-            </Text>
+            {/* <Text variant="display" className="text-4xl">Bio Writer</Text> */}
           </View>
 
-          <View className="mt-8">
-            <View className="flex-row justify-between items-center mb-4">
-              <Text variant="label" className="text-on-surface-variant">
-                Your Vibe
-              </Text>
-              <View className="bg-surface-container-high px-2 py-0.5 rounded">
-                 <Text className="text-primary text-[10px] font-bold">
-                   {bioInput.length}/500
-                 </Text>
+          <ScrollView
+            className="flex-1"
+            contentContainerStyle={{ flexGrow: 1, paddingBottom: 16 }}
+            showsVerticalScrollIndicator={false}
+          >
+            {/* Main content area - show results or a placeholder */}
+            {results.length === 0 ? (
+              <View className="flex-1 items-center justify-center">
+                <Text className="text-on-surface-variant text-center">Describe your vibe and press send to generate bios.</Text>
               </View>
-            </View>
-            <Card className="bg-surface-container border border-outline-variant p-4">
-              <TextInput
-                multiline
-                value={bioInput}
-                onChangeText={setBioInput}
-                className="text-on-surface font-inter text-base min-h-[120px]"
-                placeholderTextColor="#958da1"
-                placeholder='E.g. "I love architecture, chess, and traveling to the Alps."'
-                textAlignVertical="top"
-              />
-            </Card>
-          </View>
-
-          <View className="mt-8">
-            <View className="flex-row items-center justify-between mb-4">
-              <Text variant="label" className="text-on-surface-variant">Vibe Setting</Text>
-              <View className="flex-row items-center gap-2">
-                <View className="w-2 h-2 rounded-full bg-primary" />
-                <Text size="xs" className="text-primary font-bold">{selectedTone}</Text>
+            ) : (
+              <View className="flex-1">
+                <View>
+                  <Text size="sm" className="text-on-surface-variant mb-3 uppercase tracking-wider">Generated bios</Text>
+                  {results.map((result, index) => (
+                    <Card key={`${result.text}-${index}`} className="p-5 bg-surface-container border border-outline-variant rounded-2xl mb-3">
+                      <View className="flex-row justify-between items-start mb-4">
+                        <View className="bg-secondary-container px-2 py-1 rounded-full">
+                          <Text size="xs" weight="bold" className="text-on-secondary-container uppercase">
+                            Bio {index + 1}
+                          </Text>
+                        </View>
+                        <CopyButton value={result.text} />
+                      </View>
+                      <Text className="text-on-surface leading-relaxed text-base mb-4">{result.text}</Text>
+                      <View className="flex-row items-center justify-between pt-3 border-t border-outline-variant/30">
+                        <Text className="text-outline text-xs">Tone: {result.tone}</Text>
+                      </View>
+                    </Card>
+                  ))}
+                </View>
               </View>
-            </View>
+            )}
+          </ScrollView>
 
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} className="-mx-5 px-5">
-              <View className="flex-row gap-2">
-                {['Witty', 'Mysterious', 'Savage', 'Professional', 'Flirty'].map((tone) => (
+          {/* Composer pinned to bottom */}
+          <View className="border-t border-outline-variant bg-background px-4 py-4">
+            {Platform.OS === 'web' ? (
+              <View className="rounded-[32px] border border-outline-variant bg-surface-container px-4 py-3 shadow-lg shadow-black/20">
+                <View className="flex-row items-center gap-3">
                   <Pressable
-                    key={tone}
-                    onPress={() => setSelectedTone(tone)}
-                    className={`px-5 py-3 rounded-full border ${selectedTone === tone ? 'bg-primary-container border-primary' : 'bg-surface-low border-outline-variant'}`}
+                    onPress={() => {}}
+                    className="h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-background/40 active:bg-white/10"
                   >
-                    <Text weight="bold" size="sm" className={selectedTone === tone ? 'text-on-primary-container' : 'text-on-surface'}>
-                      {tone}
-                    </Text>
+                    <Paperclip size={22} color="#d3bbff" />
                   </Pressable>
-                ))}
+
+                  <Pressable
+                    onPress={() => setIsTonePickerOpen(true)}
+                    className="h-11 flex-row items-center gap-2 rounded-full border border-white/10 bg-background/30 px-3 active:bg-white/10"
+                  >
+                    <Sparkles size={16} color="#d3bbff" />
+                    <Text size="sm" className="text-on-surface">{selectedTone}</Text>
+                    <ChevronDown size={14} color="#958da1" />
+                  </Pressable>
+
+                  <TextInput
+                    value={bioInput}
+                    onChangeText={setBioInput}
+                    multiline={false}
+                      returnKeyType="send"
+                      onSubmitEditing={() => {
+                        void handleGenerate();
+                        setBioInput('');
+                      }}
+                    blurOnSubmit
+                    placeholder="Describe your vibe..."
+                    placeholderTextColor="#8f879b"
+                    className="h-11 flex-1 text-base text-on-surface pl-1"
+                  />
+
+                  <Pressable
+                    onPress={handleGenerate}
+                    disabled={loading}
+                    className={`h-11 w-11 items-center justify-center rounded-full ${loading ? 'bg-white/5' : bioInput.trim() ? 'bg-primary' : 'bg-white/10'}`}
+                  >
+                    {loading ? <ActivityIndicator color="#f4effe" /> : <ArrowUp size={18} color={bioInput.trim() ? '#120f16' : '#d9d3e3'} />}
+                  </Pressable>
+                </View>
               </View>
-            </ScrollView>
+            ) : (
+              <View className="rounded-[32px] bg-surface-container p-3 flex-row items-center">
+                <Pressable
+                  onPress={() => {} }
+                  className="h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-background/40 mr-3"
+                >
+                  <Paperclip size={20} color="#d3bbff" />
+                </Pressable>
+
+                <Pressable
+                  onPress={() => setIsTonePickerOpen(true)}
+                  className="h-11 flex-row items-center gap-2 rounded-full border border-white/10 bg-background/30 px-3 mr-3 active:bg-white/10"
+                >
+                  <Sparkles size={16} color="#d3bbff" />
+                  <Text size="sm" className="text-on-surface">{selectedTone}</Text>
+                  <ChevronDown size={14} color="#958da1" />
+                </Pressable>
+
+                <TextInput
+                  value={bioInput}
+                  onChangeText={setBioInput}
+                  multiline={false}
+                  placeholder="Describe your vibe..."
+                  onSubmitEditing={() => {
+                    void handleGenerate();
+                    setBioInput('');
+                  }}
+                  placeholderTextColor="#8f879b"
+                  className="flex-1 text-base text-on-surface pl-2"
+                />
+              </View>
+            )}
           </View>
 
-          {results.length > 0 && (
-            <View>
-              <Text size="sm" className="text-on-surface-variant mb-3 uppercase tracking-wider">Generated bios</Text>
-              {results.map((result, index) => (
-                <Card key={`${result.text}-${index}`} className="p-5 bg-surface-container border border-outline-variant rounded-2xl mb-3">
-                  <View className="flex-row justify-between items-start mb-4">
-                    <View className="bg-secondary-container px-2 py-1 rounded-full">
-                      <Text size="xs" weight="bold" className="text-on-secondary-container uppercase">
-                        Bio {index + 1}
-                      </Text>
-                    </View>
-                    <Pressable onPress={() => handleCopy(result.text)} className="p-2 rounded-full bg-white/5 border border-white/10">
-                      <Copy size={16} color="#e8e0ee" />
+                <Modal visible={isTonePickerOpen} transparent animationType="fade" onRequestClose={() => setIsTonePickerOpen(false)}>
+                  <Pressable className="flex-1 justify-end bg-black/55 px-4 pb-6" onPress={() => setIsTonePickerOpen(false)}>
+                    <Pressable className="overflow-hidden rounded-[28px] border border-white/10 bg-surface-container/95 p-4" onPress={(event) => event.stopPropagation()}>
+                      <Text weight="bold" size="xl">Choose tone</Text>
+                      <Text className="mt-1 text-on-surface-variant">Replies will follow the selected prompt style.</Text>
+                      <View className="mt-4 gap-2">
+                                {TONE_OPTIONS.map((tone) => {
+                                  const isSelected = tone === normalizeToneName(activeTone ?? 'Witty');
+                                  return (
+                                    <Pressable
+                                      key={tone}
+                                      onPress={() => {
+                                        setActiveTone(tone);
+                                        setIsTonePickerOpen(false);
+                                      }}
+                                      className={`flex-row items-center justify-between rounded-2xl border px-4 py-3 ${isSelected ? 'border-primary bg-primary/15' : 'border-outline-variant bg-background'}`}
+                                    >
+                                      <Text weight="semibold">{tone}</Text>
+                                      {isSelected ? <Text size="xs" className="text-primary">Selected</Text> : null}
+                                    </Pressable>
+                                  );
+                                })}
+                      </View>
                     </Pressable>
-                  </View>
-                  <Text className="text-on-surface leading-relaxed text-base mb-4">{result.text}</Text>
-                  <View className="flex-row items-center justify-between pt-3 border-t border-outline-variant/30">
-                    <Text className="text-outline text-xs">Tone: {result.tone}</Text>
-                    <Pressable onPress={() => handleCopy(result.text)} className="flex-row items-center gap-2">
-                      <Share2 size={16} color="#958da1" />
-                      <Text size="sm" className="text-on-surface-variant">Copy</Text>
-                    </Pressable>
-                  </View>
-                </Card>
-              ))}
-            </View>
-          )}
-
-          {!bioInput && results.length === 0 ? (
-            <View className="items-center justify-center py-12">
-              <Text className="text-on-surface-variant text-center">Describe your vibe above, select a tone, and generate your bios.</Text>
-            </View>
-          ) : null}
+                  </Pressable>
+                </Modal>
+                
         </View>
       </ScreenContainer>
   );

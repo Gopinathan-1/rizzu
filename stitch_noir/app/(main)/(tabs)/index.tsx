@@ -14,18 +14,20 @@ import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { Button } from '@/components/ui/Button';
+import { CopyButton } from '@/components/tones/CopyButton';
 import {
   History,
   Settings,
-  Clipboard,
   Camera,
   ChevronRight,
   MessageSquarePlus,
   ArrowUp,
   Paperclip,
+  Plus,
+  Sparkles,
+  ChevronDown,
 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
-import * as ClipboardExpo from 'expo-clipboard';
 import * as ImagePicker from 'expo-image-picker';
 import { generateText, generateVisionText } from '@/services/gemini';
 import { extractJson } from '@/services/geminiHelpers';
@@ -345,9 +347,6 @@ export default function HomeScreen() {
           <Pressable className="p-2 rounded-lg active:bg-surface-high" onPress={() => router.push('/settings')}>
             <Settings size={22} color="#f5f5f5" />
           </Pressable>
-          <View className="rounded-full border border-outline-variant px-3 py-2">
-            <Text size="sm" className="text-primary">{user?.full_name ?? user?.email ?? 'Signed in'}</Text>
-          </View>
         </View>
       </View>
 
@@ -361,12 +360,12 @@ export default function HomeScreen() {
           {historyMessages.map((msg) => (
             <View key={msg.id} className="mb-4">
               {msg.input ? (
-                <>
-                  <Text size="sm" className="text-on-surface-variant mb-2">Your message</Text>
-                  <View className="rounded-[20px] bg-primary/20 border border-primary p-4 ml-8">
+                <View className="items-end">
+                  <Text size="sm" className="mb-2 text-on-surface-variant">Your message</Text>
+                  <View className="max-w-[82%] rounded-[20px] border border-primary/30 bg-primary/20 p-4">
                     <Text className="text-white/95">{msg.input}</Text>
                   </View>
-                </>
+                </View>
               ) : null}
 
               {msg.screenshotAsset ? (
@@ -384,18 +383,18 @@ export default function HomeScreen() {
               {msg.replies?.length > 0 ? (
                 <View className="mt-3">
                   {msg.replies.map((r: string, idx: number) => (
-                    <View key={`${msg.id}-r-${idx}`} className="rounded-[20px] bg-surface-container-lowest/80 border border-outline-variant p-4 mr-8 mb-3">
-                      <View className="flex-row items-start justify-between">
-                        <View className="flex-1">
-                          <Text className="text-white/95">{r}</Text>
-                        </View>
-                        <View className="ml-3 flex-row gap-2">
-                          <Pressable onPress={async () => { await ClipboardExpo.setStringAsync(r); Alert.alert('Copied', 'Reply copied to clipboard.'); }} className="rounded-full bg-white/5 p-2 border border-white/10">
-                            <Clipboard size={16} color="#efe9ff" />
-                          </Pressable>
-                          <Pressable onPress={() => openRefineModal(msg.id, idx, r)} className="rounded-full bg-white/5 p-2 border border-white/10">
-                            <Text size="xs">Refine</Text>
-                          </Pressable>
+                    <View key={`${msg.id}-r-${idx}`} className="mb-3 items-start">
+                      <View className="max-w-[82%] rounded-[20px] border border-outline-variant bg-surface-container-lowest/80 p-4">
+                        <View className="flex-row items-start justify-between">
+                          <View className="flex-1">
+                            <Text className="text-white/95">{r}</Text>
+                          </View>
+                          <View className="ml-3 flex-row gap-2">
+                            <CopyButton value={r} />
+                            <Pressable onPress={() => openRefineModal(msg.id, idx, r)} className="rounded-full bg-white/5 p-2 border border-white/10">
+                              <Text size="xs">Refine</Text>
+                            </Pressable>
+                          </View>
                         </View>
                       </View>
                     </View>
@@ -406,9 +405,9 @@ export default function HomeScreen() {
           ))}
 
           {conversation ? (
-            <View className="mb-4">
-              <Text size="sm" className="text-on-surface-variant mb-2">Your message</Text>
-              <View className="rounded-[20px] bg-primary/20 border border-primary p-4 ml-8">
+            <View className="mb-4 items-end">
+              <Text size="sm" className="mb-2 text-on-surface-variant">Your message</Text>
+              <View className="max-w-[82%] rounded-[20px] border border-primary/30 bg-primary/20 p-4">
                 <Text className="text-white/95">{conversation}</Text>
               </View>
             </View>
@@ -422,32 +421,26 @@ export default function HomeScreen() {
                   const toneLabel = analysis.replyStyles?.[index] ?? analysis.tone ?? 'Tone';
 
                   return (
-                    <View key={`${reply}-${index}`} className="rounded-[20px] bg-surface-container-lowest/80 border border-outline-variant p-4 mr-8">
-                      <View className="flex-row items-start justify-between">
-                        <View className="flex-1">
-                          <Text className="text-white/95">{reply}</Text>
-                          <View className="mt-2 flex-row items-center gap-2">
-                            <View className="rounded-full border border-outline-variant bg-background/40 px-2.5 py-1">
-                              <Text size="xs" className="text-primary">{toneLabel}</Text>
+                    <View key={`${reply}-${index}`} className="items-start">
+                      <View className="max-w-[82%] rounded-[20px] border border-outline-variant bg-surface-container-lowest/80 p-4">
+                        <View className="flex-row items-start justify-between">
+                          <View className="flex-1">
+                            <Text className="text-white/95">{reply}</Text>
+                            <View className="mt-2 flex-row items-center gap-2">
+                              <View className="rounded-full border border-outline-variant bg-background/40 px-2.5 py-1">
+                                <Text size="xs" className="text-primary">{toneLabel}</Text>
+                              </View>
                             </View>
                           </View>
-                        </View>
-                        <View className="ml-3 flex-row items-center gap-2">
-                          <Pressable
-                            onPress={async () => {
-                              await ClipboardExpo.setStringAsync(reply);
-                              Alert.alert('Copied', 'Reply copied to clipboard.');
-                            }}
-                            className="rounded-full bg-white/5 p-2 border border-white/10"
-                          >
-                            <Clipboard size={16} color="#efe9ff" />
-                          </Pressable>
-                          <Pressable
-                            onPress={() => openRefineModal('current', index, reply)}
-                            className="rounded-full bg-white/5 px-3 py-2"
-                          >
-                            <Text size="xs">Refine</Text>
-                          </Pressable>
+                          <View className="ml-3 flex-row items-center gap-2">
+                            <CopyButton value={reply} />
+                            <Pressable
+                              onPress={() => openRefineModal('current', index, reply)}
+                              className="rounded-full bg-white/5 px-3 py-2"
+                            >
+                              <Text size="xs">Refine</Text>
+                            </Pressable>
+                          </View>
                         </View>
                       </View>
                     </View>
@@ -466,54 +459,73 @@ export default function HomeScreen() {
       </View>
 
       {/* Input section - bottom */}
-      <View className="mt-auto mb-2 rounded-[32px] border border-outline-variant bg-surface-container px-4 py-3 shadow-lg shadow-black/20">
-        {screenshotAsset ? (
-          <View className="mb-3 rounded-2xl border border-primary/30 bg-background/40 p-3 shadow-lg shadow-black/20">
-            <View className="flex-row items-center justify-between mb-2 px-1">
-              <Text size="sm" className="text-on-surface-variant">Attached image</Text>
-              <Pressable onPress={removeCurrentAttachment} className="rounded-full bg-white/5 px-3 py-2">
-                <Text size="xs">Remove</Text>
-              </Pressable>
-            </View>
-            <Image source={{ uri: screenshotAsset.uri }} className="w-full h-52 rounded-xl" resizeMode="contain" />
-            <View className="mt-2 flex-row items-center justify-between px-1">
-              <Text size="xs" className="text-on-surface-variant">
-                {screenshotLoading ? 'Analyzing image...' : screenshotPreview ? 'Preview text extracted' : 'Image ready to send'}
-              </Text>
-              {screenshotLoading ? <ActivityIndicator color="#d3bbff" /> : null}
-            </View>
+        <View className="mt-auto mb-2">
+          <View className="rounded-[32px] border border-outline-variant bg-surface-container px-4 py-3 shadow-lg shadow-black/20">
+            {Platform.OS === 'web' ? (
+              <View className="flex-row items-center gap-3">
+                <Pressable
+                  onPress={handlePickScreenshot}
+                  className="h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-background/40 active:bg-white/10"
+                >
+                  <Paperclip size={22} color="#d3bbff" />
+                </Pressable>
+
+                <TextInput
+                  value={conversation}
+                  onChangeText={setConversation}
+                  multiline={false}
+                  returnKeyType="send"
+                  onSubmitEditing={() => void handleSendMessage()}
+                  blurOnSubmit
+                  placeholder="Paste or type a conversation..."
+                  placeholderTextColor="#8f879b"
+                  className="h-11 flex-1 text-base text-on-surface pl-0.5"
+                />
+
+                <Pressable
+                  onPress={handleSendMessage}
+                  disabled={analysisLoading}
+                  className={`h-11 w-11 items-center justify-center rounded-full ${analysisLoading ? 'bg-white/5' : conversation.trim() || screenshotAsset ? 'bg-primary' : 'bg-white/10'}`}
+                >
+                  {analysisLoading ? <ActivityIndicator color="#f4effe" /> : <ArrowUp size={18} color={conversation.trim() || screenshotAsset ? '#120f16' : '#d9d3e3'} />}
+                </Pressable>
+              </View>
+            ) : (
+              <View className="flex-row items-center gap-3">
+                <Pressable className="px-3 py-2 rounded-full bg-background/30 mr-3">
+                  <Plus size={20} color="#d3bbff" />
+                </Pressable>
+                <TextInput
+                  value={conversation}
+                  onChangeText={setConversation}
+                  multiline={false}
+                  returnKeyType="send"
+                  onSubmitEditing={() => void handleSendMessage()}
+                  blurOnSubmit
+                  placeholder="Ask anything"
+                  placeholderTextColor="#bfb7c9"
+                  className="flex-1 text-base text-on-surface"
+                />
+                <View className="flex-row items-center gap-3 ml-3">
+                  <Pressable onPress={() => {}} className="p-2 rounded-full bg-background/20">
+                    <ChevronDown size={16} color="#958da1" />
+                  </Pressable>
+                  <Pressable className="p-2 rounded-full bg-background/20">
+                    <Sparkles size={16} color="#d3bbff" />
+                  </Pressable>
+
+                  <Pressable
+                    onPress={handleSendMessage}
+                    disabled={analysisLoading}
+                    className={`h-11 w-11 items-center justify-center rounded-full ${analysisLoading ? 'bg-white/5' : conversation.trim() || screenshotAsset ? 'bg-primary' : 'bg-white/10'}`}
+                  >
+                    {analysisLoading ? <ActivityIndicator color="#f4effe" /> : <ArrowUp size={18} color={conversation.trim() || screenshotAsset ? '#120f16' : '#d9d3e3'} />}
+                  </Pressable>
+                </View>
+              </View>
+            )}
           </View>
-        ) : null}
-
-        <View className="flex-row items-center gap-3">
-          <Pressable
-            onPress={handlePickScreenshot}
-            className="h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-background/40 active:bg-white/10"
-          >
-            <Paperclip size={22} color="#d3bbff" />
-          </Pressable>
-
-          <TextInput
-            value={conversation}
-            onChangeText={setConversation}
-            multiline={false}
-            returnKeyType="send"
-            onSubmitEditing={() => void handleSendMessage()}
-            blurOnSubmit
-            placeholder="Paste or type a conversation..."
-            placeholderTextColor="#8f879b"
-            className="h-11 flex-1 text-base text-on-surface pl-0.5"
-          />
-
-          <Pressable
-            onPress={handleSendMessage}
-            disabled={analysisLoading}
-            className={`h-11 w-11 items-center justify-center rounded-full ${analysisLoading ? 'bg-white/5' : conversation.trim() || screenshotAsset ? 'bg-primary' : 'bg-white/10'}`}
-          >
-            {analysisLoading ? <ActivityIndicator color="#f4effe" /> : <ArrowUp size={18} color={conversation.trim() || screenshotAsset ? '#120f16' : '#d9d3e3'} />}
-          </Pressable>
         </View>
-      </View>
 
       {analysisError ? (
         <Card className="mt-4 p-4 bg-red-500/10 border border-red-500/30">
