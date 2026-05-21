@@ -28,6 +28,7 @@ type AppState = {
   user: { id: string; email?: string | null; full_name?: string | null } | null;
   isPremium: boolean;
   activeTone: string;
+  activeChatId: string | null;
   currentAnalysis: AnalysisResult | null;
   vault: VaultItem[];
   history: HistoryItem[];
@@ -35,6 +36,7 @@ type AppState = {
   setUser: (user: AppState['user']) => void;
   setPremium: (isPremium: boolean) => void;
   setActiveTone: (tone: string) => void;
+  setActiveChatId: (chatId: string | null) => void;
   setAnalysis: (analysis: AnalysisResult | null) => void;
   setTrendingToneExample: (tone: string, example: string) => void;
   addToVault: (item: VaultItem) => void;
@@ -65,6 +67,7 @@ const initialState = {
   user: null,
   isPremium: false,
   activeTone: 'Witty',
+  activeChatId: null,
   currentAnalysis: null,
   vault: [],
   history: [],
@@ -78,6 +81,7 @@ export const useAppStore = create<AppState>()(
       setUser: (user) => set({ user }),
       setPremium: (isPremium) => set({ isPremium }),
       setActiveTone: (tone) => set({ activeTone: tone }),
+      setActiveChatId: (activeChatId) => set({ activeChatId }),
       setAnalysis: (analysis) => set({ currentAnalysis: analysis }),
       setTrendingToneExample: (tone, example) =>
         set((state) => ({
@@ -105,6 +109,7 @@ export const useAppStore = create<AppState>()(
         user: state.user,
         isPremium: state.isPremium,
         activeTone: state.activeTone,
+        activeChatId: state.activeChatId,
         currentAnalysis: state.currentAnalysis,
         vault: state.vault,
         history: state.history,

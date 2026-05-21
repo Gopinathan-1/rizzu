@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react';
 import 'react-native-reanimated';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { supabase } from '@/services/auth';
+import { getRememberedSessionStatus, markSessionRemembered } from '@/services/sessionRemember';
 import { useAppStore } from '@/store/useAppStore';
 
 export {
@@ -66,14 +67,25 @@ export default function RootLayout() {
         data: { session },
       } = await supabase.auth.getSession();
 
+      let nextSession = session;
+      if (session) {
+        const rememberStatus = await getRememberedSessionStatus();
+        if (rememberStatus === 'expired') {
+          await supabase.auth.signOut();
+          nextSession = null;
+        } else {
+          await markSessionRemembered();
+        }
+      }
+
       if (isMounted) {
-        setIsLoggedIn(Boolean(session));
+        setIsLoggedIn(Boolean(nextSession));
         setUser(
-          session?.user
+          nextSession?.user
             ? {
-                id: session.user.id,
-                email: session.user.email,
-                full_name: session.user.user_metadata?.full_name ?? session.user.user_metadata?.name ?? null,
+                id: nextSession.user.id,
+                email: nextSession.user.email,
+                full_name: nextSession.user.user_metadata?.full_name ?? nextSession.user.user_metadata?.name ?? null,
               }
             : null
         );
@@ -83,14 +95,26 @@ export default function RootLayout() {
 
     bootstrapAuth();
 
-    const subscription = supabase?.auth.onAuthStateChange((_event, session) => {
-      setIsLoggedIn(Boolean(session));
+    const subscription = supabase?.auth.onAuthStateChange(async (_event, session) => {
+      let nextSession = session;
+
+      if (session) {
+        const rememberStatus = await getRememberedSessionStatus();
+        if (rememberStatus === 'expired') {
+          await supabase?.auth.signOut();
+          nextSession = null;
+        } else {
+          await markSessionRemembered();
+        }
+      }
+
+      setIsLoggedIn(Boolean(nextSession));
       setUser(
-        session?.user
+        nextSession?.user
           ? {
-              id: session.user.id,
-              email: session.user.email,
-              full_name: session.user.user_metadata?.full_name ?? session.user.user_metadata?.name ?? null,
+              id: nextSession.user.id,
+              email: nextSession.user.email,
+              full_name: nextSession.user.user_metadata?.full_name ?? nextSession.user.user_metadata?.name ?? null,
             }
           : null
       );
@@ -127,8 +151,6 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider value={AppTheme}>
         <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-          <Stack.Screen name="(main)" options={{ headerShown: false }} />
         </Stack>
       </ThemeProvider>
     </GestureHandlerRootView>

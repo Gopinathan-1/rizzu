@@ -17,13 +17,14 @@ import * as Clipboard from 'expo-clipboard';
 import { addHistoryRecord, saveVaultRecord } from '@/services/appData';
 import { generateToneReplies } from '@/services/conversationAnalysis';
 import { useAppStore } from '@/store/useAppStore';
+import { normalizeToneName } from '@/lib/tonePrompts';
 
 export default function ReplyGeneratorScreen() {
   const router = useRouter();
   const activeTone = useAppStore((state) => state.activeTone);
   const currentAnalysis = useAppStore((state) => state.currentAnalysis);
   const addToVault = useAppStore((state) => state.addToVault);
-  const [selectedTone, setSelectedTone] = useState(activeTone || 'Savage');
+  const [selectedTone, setSelectedTone] = useState(normalizeToneName(activeTone || 'Savage'));
   const [context, setContext] = useState(currentAnalysis?.extractedText || '');
   const [loading, setLoading] = useState(false);
   const [replies, setReplies] = useState<string[]>([
@@ -38,7 +39,7 @@ export default function ReplyGeneratorScreen() {
 
   useEffect(() => {
     if (activeTone) {
-      setSelectedTone(activeTone);
+      setSelectedTone(normalizeToneName(activeTone));
     }
   }, [activeTone]);
 
@@ -50,9 +51,13 @@ export default function ReplyGeneratorScreen() {
 
     setLoading(true);
     try {
-      const result = await generateToneReplies(selectedTone, context);
+      const toneToUse = normalizeToneName(selectedTone);
+      const result = await generateToneReplies(toneToUse, context);
+      if (result.replies.length === 0) {
+        throw new Error('No replies were returned. Try again.');
+      }
       setReplies(result.replies);
-      await addHistoryRecord({ type: 'reply', content: JSON.stringify({ tone: selectedTone, context, replies: result.replies }) });
+      await addHistoryRecord({ type: 'reply', content: JSON.stringify({ tone: toneToUse, context, replies: result.replies }) });
     } catch (error) {
       Alert.alert('Generation failed', error instanceof Error ? error.message : 'Please try again.');
     } finally {
@@ -170,7 +175,7 @@ export default function ReplyGeneratorScreen() {
                 </View>
                 <Text className="text-on-surface leading-relaxed">{reply}</Text>
                 <View className="flex-row items-center justify-between mt-4 pt-4 border-t border-outline-variant/30">
-                  <Text className="text-outline text-xs">Tone: {selectedTone}</Text>
+                  <Text className="text-outline text-xs">Tone: {normalizeToneName(selectedTone)}</Text>
                   <Pressable onPress={() => handleCopy(reply)} className="flex-row items-center gap-2">
                     <Share2 size={16} color="#958da1" />
                     <Text size="sm">Copy</Text>

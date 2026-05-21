@@ -105,17 +105,21 @@ Deno.serve(async (request) => {
     ]);
 
     console.log('[chat-stream] Chat context loaded');
-    console.log('[chat-stream] Generating embedding for query...');
-    const queryEmbedding = await generateEmbedding(message, 'RETRIEVAL_QUERY');
-    console.log('[chat-stream] Embedding generated, querying chunks...');
-    const retrievedHits = await queryChunks({
-      userId: user.id,
-      queryEmbedding,
-      limit: RETRIEVAL_LIMIT,
-      chatId,
-    });
-
-    console.log(`[chat-stream] Retrieved ${retrievedHits.length} chunks`);
+    let retrievedHits: Array<{ document: string }> = [];
+    try {
+      console.log('[chat-stream] Generating embedding for query...');
+      const queryEmbedding = await generateEmbedding(message, 'RETRIEVAL_QUERY');
+      console.log('[chat-stream] Embedding generated, querying chunks...');
+      retrievedHits = await queryChunks({
+        userId: user.id,
+        queryEmbedding,
+        limit: RETRIEVAL_LIMIT,
+        chatId,
+      });
+      console.log(`[chat-stream] Retrieved ${retrievedHits.length} chunks`);
+    } catch (error) {
+      console.warn('[chat-stream] Retrieval failed, continuing without Chroma context.', error);
+    }
     const memoryItems = (memories ?? []) as Array<{ summary: string }>;
     const uploadItems = (uploads ?? []) as Array<{ filename: string; file_type: string }>;
     const messageItems = (messages ?? []) as Array<{ role: string; content: string }>;
@@ -146,41 +150,51 @@ Deno.serve(async (request) => {
           }
 
           console.log('[chat-stream-stream] Stream complete, summarizing memory...');
-          const retrievedDocuments = retrievedHits as Array<{ document: string }>;
-          const summary = await summarizeMemory({
-            chatTitle: chat?.title ?? 'New chat',
-            extractedText: `${message}\n\n${retrievedDocuments.map((hit) => hit.document).join('\n\n')}`,
-            responseText: assistantText,
-          });
+          const retrievedDocuments = retrievedHits;
+          let summary = assistantText.slice(0, 500);
 
-          console.log('[chat-stream-stream] Creating response chunks...');
-          const assistantChunks = chunkText(assistantText).slice(0, 4);
-          const assistantEmbeddings = await Promise.all(
-            assistantChunks.map((chunk) => generateEmbedding(chunk.text, 'RETRIEVAL_DOCUMENT'))
-          );
+          try {
+            summary = await summarizeMemory({
+              chatTitle: chat?.title ?? 'New chat',
+              extractedText: `${message}\n\n${retrievedDocuments.map((hit) => hit.document).join('\n\n')}`,
+              responseText: assistantText,
+            });
+          } catch (error) {
+            console.warn('[chat-stream-stream] Memory summary failed, using fallback text.', error);
+          }
 
-          console.log('[chat-stream-stream] Upserting chunks...');
-          await upsertChunks({
-            userId: user.id,
-            chunks: assistantChunks.map((chunk, index) => ({
-              id: buildChunkId({
-                userId: user.id,
-                chatId,
-                filename: 'conversation-memory',
-                chunkIndex: chunk.index,
-              }),
-              text: chunk.text,
-              embedding: assistantEmbeddings[index],
-              metadata: {
-                userId: user.id,
-                chatId,
-                filename: 'conversation-memory',
-                uploadTimestamp: new Date().toISOString(),
-                chunkIndex: chunk.index,
-                sourceType: 'chat',
-              },
-            })),
-          });
+          try {
+            console.log('[chat-stream-stream] Creating response chunks...');
+            const assistantChunks = chunkText(assistantText).slice(0, 4);
+            const assistantEmbeddings = await Promise.all(
+              assistantChunks.map((chunk) => generateEmbedding(chunk.text, 'RETRIEVAL_DOCUMENT'))
+            );
+
+            console.log('[chat-stream-stream] Upserting chunks...');
+            await upsertChunks({
+              userId: user.id,
+              chunks: assistantChunks.map((chunk, index) => ({
+                id: buildChunkId({
+                  userId: user.id,
+                  chatId,
+                  filename: 'conversation-memory',
+                  chunkIndex: chunk.index,
+                }),
+                text: chunk.text,
+                embedding: assistantEmbeddings[index],
+                metadata: {
+                  userId: user.id,
+                  chatId,
+                  filename: 'conversation-memory',
+                  uploadTimestamp: new Date().toISOString(),
+                  chunkIndex: chunk.index,
+                  sourceType: 'chat',
+                },
+              })),
+            });
+          } catch (error) {
+            console.warn('[chat-stream-stream] Chunk persistence failed, continuing.', error);
+          }
 
           console.log('[chat-stream-stream] Saving message and memory...');
           await Promise.all([
@@ -195,18 +209,25 @@ Deno.serve(async (request) => {
               chat_id: chatId,
               summary,
             }),
-            db
+          ]);
+
+          try {
+            const nextTitle =
+              chat?.title && chat.title !== 'New chat'
+                ? chat.title
+                : parseTitleResponse(await generateChatTitle(message));
+
+            await db
               .from('chats')
               .update({
-                title:
-                  chat?.title && chat.title !== 'New chat'
-                    ? chat.title
-                    : parseTitleResponse(await generateChatTitle(message)),
+                title: nextTitle,
                 updated_at: new Date().toISOString(),
               })
               .eq('id', chatId)
-              .eq('user_id', user.id),
-          ]);
+              .eq('user_id', user.id);
+          } catch (error) {
+            console.warn('[chat-stream-stream] Title update failed, keeping existing title.', error);
+          }
 
           console.log('[chat-stream-stream] All complete, closing stream');
           controller.close();

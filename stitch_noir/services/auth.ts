@@ -1,5 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
+import { Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAppStore } from '@/store/useAppStore';
+import { clearRememberedSession, markSessionRemembered } from '@/services/sessionRemember';
 
 const supabaseUrl =
   process.env.EXPO_PUBLIC_SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -15,8 +18,9 @@ export const supabase =
         auth: {
           persistSession: true,
           autoRefreshToken: true,
-          detectSessionInUrl: true,
+          detectSessionInUrl: Platform.OS === 'web',
           storageKey: 'stitch-noir-auth',
+          storage: Platform.OS === 'web' ? undefined : AsyncStorage,
         },
       })
     : null;
@@ -54,6 +58,9 @@ export const authService = {
       });
 
       if (error) throw error;
+      if (data.session) {
+        await markSessionRemembered();
+      }
       return { data, error: null };
     } catch (error) {
       return { data: null, error };
@@ -69,6 +76,7 @@ export const authService = {
       });
 
       if (error) throw error;
+      await markSessionRemembered();
       return { data, error: null };
     } catch (error) {
       return { data: null, error };
@@ -80,6 +88,7 @@ export const authService = {
       const client = getSupabaseClient();
       const { error } = await client.auth.signOut();
       if (error) throw error;
+      await clearRememberedSession();
       useAppStore.getState().clearState();
       return { error: null };
     } catch (error) {

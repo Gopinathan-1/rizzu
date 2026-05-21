@@ -3,7 +3,7 @@ import { GoogleGenAI } from '@google/genai';
 
 // Try multiple places for the API key: Expo extra (from app.config.js) or env at build time
 const GEMINI_API_KEY = (Constants.expoConfig?.extra?.GEMINI_API_KEY ?? process.env.GEMINI_API_KEY) as string | undefined;
-const GEMINI_MODEL = 'gemini-3-flash-preview';
+const GEMINI_MODELS = ['gemini-3-flash-preview', 'gemini-2.5-flash', 'gemini-1.5-flash'] as const;
 
 const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY ?? '' });
 
@@ -15,6 +15,35 @@ function requireApiKey() {
   if (!GEMINI_API_KEY) {
     throw new Error('Missing Gemini API key');
   }
+}
+
+function isQuotaError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  return /429|quota|resource_exhausted|rate limit/i.test(message);
+}
+
+async function generateWithFallback(
+  contents: Parameters<typeof ai.models.generateContent>[0]['contents']
+): Promise<{ text?: string | null; candidates?: unknown[] }> {
+  let lastError: unknown = null;
+
+  for (const model of GEMINI_MODELS) {
+    try {
+      return await ai.models.generateContent({
+        model,
+        contents,
+      });
+    } catch (error) {
+      lastError = error;
+      if (!isQuotaError(error)) {
+        throw error;
+      }
+    }
+  }
+
+  throw lastError instanceof Error
+    ? new Error('Gemini quota was exceeded for all fallback models. Please try again later.')
+    : new Error('Gemini quota was exceeded for all fallback models.');
 }
 
 function getTextFromResponse(response: { text?: string | null }) {
@@ -40,10 +69,7 @@ function getTextFromResponse(response: { text?: string | null }) {
 export async function generateText(prompt: string): Promise<string> {
   requireApiKey();
 
-  const response = await ai.models.generateContent({
-    model: GEMINI_MODEL,
-    contents: prompt,
-  });
+  const response = await generateWithFallback(prompt);
 
   return getTextFromResponse(response);
 }
@@ -55,23 +81,20 @@ export async function generateVisionText(
 ): Promise<string> {
   requireApiKey();
 
-  const response = await ai.models.generateContent({
-    model: GEMINI_MODEL,
-    contents: [
-      {
-        role: 'user',
-        parts: [
-          { text: prompt },
-          {
-            inlineData: {
-              mimeType,
-              data: base64Image,
-            },
+  const response = await generateWithFallback([
+    {
+      role: 'user',
+      parts: [
+        { text: prompt },
+        {
+          inlineData: {
+            mimeType,
+            data: base64Image,
           },
-        ],
-      },
-    ],
-  });
+        },
+      ],
+    },
+  ]);
 
   return getTextFromResponse(response);
 }

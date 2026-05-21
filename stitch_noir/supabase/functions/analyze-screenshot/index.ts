@@ -54,14 +54,26 @@ Deno.serve(async (request) => {
     console.log('[analyze-screenshot] Analyzing screenshot...');
 
     // Step 1: Extract text from image
-    const extractionPrompt = `Extract all the text from this conversation screenshot. Preserve the flow and order of the messages. Return only the extracted text with no markdown or extra commentary.`;
+    const extractionPrompt = `Extract all text from this conversation screenshot. Preserve message order and natural flow. Return only the extracted text with no markdown or extra commentary.`;
 
     const extractedTextResponse = await generateVisionText(extractionPrompt, base64, mimeType);
     const extractedText = extractedTextResponse.trim();
     console.log('[analyze-screenshot] Extracted text:', extractedText);
 
     // Step 2: Analyze the conversation
-    const analysisPrompt = `Analyze this conversation and return:\n1. The overall emotional tone (e.g., flirty, tense, casual, professional)\n2. The other person's intent or mood\n3. 3 suggested reply styles (e.g., playful, direct, empathetic)\n\nReturn JSON exactly in this shape: {"tone":"","mood":"","replyStyles":["","",""]}\n\nConversation:\n${extractedText}`;
+    const analysisPrompt = `You are analyzing a real conversation screenshot.
+
+  Return JSON exactly in this shape: {"tone":"","mood":"","replyStyles":["","",""]}
+
+  Guidelines:
+  - Tone should be a short label like flirty, casual, tense, professional, playful, etc.
+  - Mood should describe the other person's likely intent or emotional state in plain language.
+  - replyStyles should contain 3 distinct short reply style labels that feel useful and specific.
+  - Avoid vague filler unless the conversation truly lacks signal.
+  - Do not include markdown, commentary, or extra text.
+
+  Conversation:
+  ${extractedText}`;
 
     const analysisResponse = await generateText(analysisPrompt);
     console.log('[analyze-screenshot] Analysis response:', analysisResponse);
@@ -69,7 +81,18 @@ Deno.serve(async (request) => {
     const analysis = extractJson<{ tone: string; mood: string; replyStyles: string[] }>(analysisResponse);
 
     // Step 3: Generate human-like replies
-    const replyPrompt = `You are a helpful human-like friend. Given the conversation below, write 3 short, natural-sounding replies the user could send. Make them feel authentic, concise, and varied in tone. Return JSON exactly as ["reply1","reply2","reply3"]\n\nConversation:\n${extractedText}`;
+    const replyPrompt = `Write 3 natural replies the user could send.
+
+  Rules:
+  - Return JSON exactly as ["reply1","reply2","reply3"].
+  - Each reply must be short, human, and easy to send.
+  - Make the 3 replies noticeably different in wording and energy.
+  - Keep them modern, clean, and believable.
+  - Avoid robotic phrasing, generic filler, and repetitive sentence patterns.
+  - No markdown or extra commentary.
+
+  Conversation:
+  ${extractedText}`;
 
     const replyResponse = await generateText(replyPrompt);
     console.log('[analyze-screenshot] Reply response:', replyResponse);

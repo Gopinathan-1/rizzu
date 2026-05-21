@@ -1,6 +1,7 @@
 import { supabase } from './auth';
 import { generateText, generateVisionText, hasGeminiApiKey } from './gemini';
 import { extractJson } from './geminiHelpers';
+import { getTonePrompt, normalizeToneName } from '@/lib/tonePrompts';
 
 export type ConversationAnalysisResult = {
   tone: string;
@@ -112,12 +113,35 @@ async function generateToneRepliesViaSupabase(
 }
 
 async function analyzeConversationViaLocalGemini(conversation: string): Promise<ConversationAnalysisResult> {
-  const analysisPrompt = `Analyze this conversation and return:\n1. The overall emotional tone (e.g., flirty, tense, casual, professional)\n2. The other person's intent or mood\n3. 3 suggested reply styles (e.g., playful, direct, empathetic)\n\nReturn JSON exactly in this shape: {"tone":"","mood":"","replyStyles":["","",""]}\n\nConversation:\n${conversation}`;
+  const analysisPrompt = `You are analyzing a real conversation.
+
+Return JSON exactly in this shape: {"tone":"","mood":"","replyStyles":["","",""]}
+
+Guidelines:
+- Tone should be a short label like flirty, casual, tense, professional, playful, etc.
+- Mood should describe the other person's likely intent or emotional state in plain language.
+- replyStyles should contain 3 distinct short reply style labels that feel useful and specific.
+- Avoid vague filler like "mixed" or "normal" unless the conversation truly lacks signal.
+- Do not include markdown, commentary, or extra text.
+
+Conversation:
+${conversation}`;
 
   const analysisResponse = await generateText(analysisPrompt);
   const analysis = extractJson<{ tone: string; mood: string; replyStyles: string[] }>(analysisResponse);
 
-  const replyPrompt = `You are a helpful human-like friend. Given the conversation below, write 3 short, natural-sounding replies the user could send. Make them feel authentic, concise, and varied in tone. Return JSON exactly as ["reply1","reply2","reply3"]\n\nConversation:\n${conversation}`;
+  const replyPrompt = `Write 3 natural replies the user could send.
+
+Rules:
+- Return JSON exactly as ["reply1","reply2","reply3"].
+- Each reply must be short, human, and easy to send.
+- Make the 3 replies noticeably different in wording and energy.
+- Keep them modern, clean, and believable.
+- Avoid robotic phrasing, generic filler, and repetitive sentence patterns.
+- No markdown or extra commentary.
+
+Conversation:
+${conversation}`;
   const replyResponse = await generateText(replyPrompt);
   const replies = extractJson<string[]>(replyResponse);
 
@@ -133,14 +157,37 @@ async function analyzeScreenshotViaLocalGemini(
   base64: string,
   mimeType: string
 ): Promise<ConversationAnalysisResult & { extractedText: string }> {
-  const extractionPrompt = 'Extract all the text from this conversation screenshot. Preserve the flow and order of the messages. Return only the extracted text with no markdown or extra commentary.';
+  const extractionPrompt = 'Extract all text from this conversation screenshot. Preserve message order and natural flow. Return only the extracted text with no markdown or extra commentary.';
   const extractedText = (await generateVisionText(extractionPrompt, base64, mimeType)).trim();
 
-  const analysisPrompt = `Analyze this conversation and return:\n1. The overall emotional tone (e.g., flirty, tense, casual, professional)\n2. The other person's intent or mood\n3. 3 suggested reply styles (e.g., playful, direct, empathetic)\n\nReturn JSON exactly in this shape: {"tone":"","mood":"","replyStyles":["","",""]}\n\nConversation:\n${extractedText}`;
+  const analysisPrompt = `You are analyzing a real conversation screenshot.
+
+Return JSON exactly in this shape: {"tone":"","mood":"","replyStyles":["","",""]}
+
+Guidelines:
+- Tone should be a short label like flirty, casual, tense, professional, playful, etc.
+- Mood should describe the other person's likely intent or emotional state in plain language.
+- replyStyles should contain 3 distinct short reply style labels that feel useful and specific.
+- Avoid vague filler unless the conversation truly lacks signal.
+- Do not include markdown, commentary, or extra text.
+
+Conversation:
+${extractedText}`;
   const analysisResponse = await generateText(analysisPrompt);
   const analysis = extractJson<{ tone: string; mood: string; replyStyles: string[] }>(analysisResponse);
 
-  const replyPrompt = `You are a helpful human-like friend. Given the conversation below, write 3 short, natural-sounding replies the user could send. Make them feel authentic, concise, and varied in tone. Return JSON exactly as ["reply1","reply2","reply3"]\n\nConversation:\n${extractedText}`;
+  const replyPrompt = `Write 3 natural replies the user could send.
+
+Rules:
+- Return JSON exactly as ["reply1","reply2","reply3"].
+- Each reply must be short, human, and easy to send.
+- Make the 3 replies noticeably different in wording and energy.
+- Keep them modern, clean, and believable.
+- Avoid robotic phrasing, generic filler, and repetitive sentence patterns.
+- No markdown or extra commentary.
+
+Conversation:
+${extractedText}`;
   const replyResponse = await generateText(replyPrompt);
   const replies = extractJson<string[]>(replyResponse);
 
@@ -154,12 +201,23 @@ async function analyzeScreenshotViaLocalGemini(
 }
 
 async function generateToneRepliesViaLocalGemini(tone: string, context: string): Promise<{ replies: string[] }> {
-  const prompt = `Generate 3 unique replies to the following conversation.\nApply the ${tone} tone strictly.\nReplies should feel natural, not robotic.\nReturn as JSON array: ["reply1", "reply2", "reply3"]\n\nContext:\n${context}`;
+  const prompt = `${getTonePrompt(normalizeToneName(tone))}
+
+Conversation:
+${context}
+
+Return exactly 3 replies, one per line, with no labels, bullets, or extra commentary.`;
   const response = await generateText(prompt);
-  const replies = extractJson<string[]>(response);
+  const replies = response
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => line.replace(/^[-*•\d.)\s]+/, '').replace(/^"|"$/g, '').trim())
+    .filter(Boolean)
+    .slice(0, 3);
 
   return {
-    replies: Array.isArray(replies) ? replies.slice(0, 3) : [],
+    replies,
   };
 }
 

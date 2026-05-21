@@ -1,11 +1,16 @@
 import { GoogleGenAI } from 'npm:@google/genai';
 import { getEnv } from './supabase.ts';
 
-const GEMINI_MODEL = 'gemini-3-flash-preview';
+const GEMINI_MODELS = ['gemini-3-flash-preview', 'gemini-2.5-flash', 'gemini-1.5-flash'] as const;
 const EMBEDDING_MODEL = 'gemini-embedding-001';
 
 function getClient() {
   return new GoogleGenAI({ apiKey: getEnv('GEMINI_API_KEY') });
+}
+
+function isQuotaError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  return /429|quota|resource_exhausted|rate limit/i.test(message);
 }
 
 function extractText(response: { text?: string | null }) {
@@ -26,26 +31,58 @@ function toBase64(data: Uint8Array) {
 
 export async function generateText(prompt: string) {
   const ai = getClient();
-  const response = await ai.models.generateContent({
-    model: GEMINI_MODEL,
-    contents: prompt,
-  });
+  let lastError: unknown = null;
 
-  return extractText(response);
+  for (const model of GEMINI_MODELS) {
+    try {
+      const response = await ai.models.generateContent({
+        model,
+        contents: prompt,
+      });
+
+      return extractText(response);
+    } catch (error) {
+      lastError = error;
+      if (!isQuotaError(error)) {
+        throw error;
+      }
+    }
+  }
+
+  throw lastError instanceof Error
+    ? new Error('Gemini quota was exceeded for all fallback models. Please try again later.')
+    : new Error('Gemini quota was exceeded for all fallback models.');
 }
 
 export async function* streamText(prompt: string) {
   const ai = getClient();
-  const response = await ai.models.generateContentStream({
-    model: GEMINI_MODEL,
-    contents: prompt,
-  });
+  let lastError: unknown = null;
 
-  for await (const chunk of response) {
-    if (chunk.text) {
-      yield chunk.text;
+  for (const model of GEMINI_MODELS) {
+    try {
+      const response = await ai.models.generateContentStream({
+        model,
+        contents: prompt,
+      });
+
+      for await (const chunk of response) {
+        if (chunk.text) {
+          yield chunk.text;
+        }
+      }
+
+      return;
+    } catch (error) {
+      lastError = error;
+      if (!isQuotaError(error)) {
+        throw error;
+      }
     }
   }
+
+  throw lastError instanceof Error
+    ? new Error('Gemini quota was exceeded for all fallback models. Please try again later.')
+    : new Error('Gemini quota was exceeded for all fallback models.');
 }
 
 export async function generateEmbedding(text: string, taskType: 'RETRIEVAL_QUERY' | 'RETRIEVAL_DOCUMENT' = 'RETRIEVAL_DOCUMENT') {
@@ -75,49 +112,79 @@ export async function extractTextFromBinary(data: Uint8Array, mimeType: string, 
     `Filename: ${filename}`,
   ].join('\n');
 
-  const response = await ai.models.generateContent({
-    model: GEMINI_MODEL,
-    contents: [
-      {
-        role: 'user',
-        parts: [
-          { text: prompt },
+  let lastError: unknown = null;
+
+  for (const model of GEMINI_MODELS) {
+    try {
+      const response = await ai.models.generateContent({
+        model,
+        contents: [
           {
-            inlineData: {
-              mimeType,
-              data: toBase64(data),
-            },
+            role: 'user',
+            parts: [
+              { text: prompt },
+              {
+                inlineData: {
+                  mimeType,
+                  data: toBase64(data),
+                },
+              },
+            ],
           },
         ],
-      },
-    ],
-  });
+      });
 
-  return extractText(response).trim();
+      return extractText(response).trim();
+    } catch (error) {
+      lastError = error;
+      if (!isQuotaError(error)) {
+        throw error;
+      }
+    }
+  }
+
+  throw lastError instanceof Error
+    ? new Error('Gemini quota was exceeded for all fallback models. Please try again later.')
+    : new Error('Gemini quota was exceeded for all fallback models.');
 }
 
 export async function generateVisionText(prompt: string, base64: string, mimeType: string) {
   const ai = getClient();
-  
-  const response = await ai.models.generateContent({
-    model: GEMINI_MODEL,
-    contents: [
-      {
-        role: 'user',
-        parts: [
-          { text: prompt },
+
+  let lastError: unknown = null;
+
+  for (const model of GEMINI_MODELS) {
+    try {
+      const response = await ai.models.generateContent({
+        model,
+        contents: [
           {
-            inlineData: {
-              mimeType,
-              data: base64,
-            },
+            role: 'user',
+            parts: [
+              { text: prompt },
+              {
+                inlineData: {
+                  mimeType,
+                  data: base64,
+                },
+              },
+            ],
           },
         ],
-      },
-    ],
-  });
+      });
 
-  return extractText(response);
+      return extractText(response);
+    } catch (error) {
+      lastError = error;
+      if (!isQuotaError(error)) {
+        throw error;
+      }
+    }
+  }
+
+  throw lastError instanceof Error
+    ? new Error('Gemini quota was exceeded for all fallback models. Please try again later.')
+    : new Error('Gemini quota was exceeded for all fallback models.');
 }
 
 export async function summarizeMemory(params: {
@@ -126,9 +193,10 @@ export async function summarizeMemory(params: {
   responseText: string;
 }) {
   const prompt = [
-    'Summarize the most useful long-term memory from this conversation and file context.',
-    'Return a concise summary of lasting facts, preferences, and context worth remembering.',
-    'Keep the summary under 5 sentences and do not mention that this is a summary.',
+    'Extract the most useful long-term memory from this conversation and file context.',
+    'Focus on lasting facts, preferences, and context worth remembering later.',
+    'Keep it concise, concrete, and easy to reuse.',
+    'Do not mention that this is a summary.',
     'Return only plain text.',
     `Chat title: ${params.chatTitle}`,
     'Conversation context:',
@@ -144,7 +212,9 @@ export async function generateChatTitle(message: string) {
   const prompt = [
     'Create a short, useful chat title from the message below.',
     'Return JSON exactly like {"title":"..."}.',
-    'The title should be 2 to 6 words, title case, and not include quotes.',
+    'Make it 2 to 6 words, title case, and easy to scan.',
+    'Avoid generic labels like Chat 1 or New Conversation unless nothing else fits.',
+    'Do not include quotes around the title value.',
     `Message: ${message}`,
   ].join('\n\n');
 

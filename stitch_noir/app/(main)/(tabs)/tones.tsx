@@ -10,10 +10,12 @@ import {
   Image,
   Modal,
   Platform,
+  useWindowDimensions,
 } from 'react-native';
 import { Text } from '@/components/ui/Text';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { Button } from '@/components/ui/Button';
+import { ModernComposer } from '@/components/ui/ModernComposer';
 import { ChatMessageBubble } from '@/components/tones/ChatMessageBubble';
 import { MemoryDrawer } from '@/components/tones/MemoryDrawer';
 import {
@@ -25,6 +27,7 @@ import {
   ArrowUp,
   Search,
   UploadCloud,
+  Menu,
 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
@@ -105,14 +108,18 @@ function normalizeTitle(title: string) {
 export default function TonesScreen() {
   const router = useRouter();
   const listRef = useRef<FlatList<WorkspaceMessage>>(null);
+  const { width } = useWindowDimensions();
+  const isCompactMobile = width < 420;
   const activeTone = useAppStore((state) => state.activeTone);
+  const activeChatId = useAppStore((state) => state.activeChatId);
   const setActiveTone = useAppStore((state) => state.setActiveTone);
+  const setActiveChatId = useAppStore((state) => state.setActiveChatId);
   const user = useAppStore((state) => state.user);
 
   const [chats, setChats] = useState<WorkspaceChat[]>([]);
   const [messages, setMessages] = useState<WorkspaceMessage[]>([]);
   const [uploads, setUploads] = useState<WorkspaceUpload[]>([]);
-  const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
+  const [selectedChatId, setSelectedChatId] = useState<string | null>(activeChatId);
   const [searchText, setSearchText] = useState('');
   const [draft, setDraft] = useState('');
   const [streamingText, setStreamingText] = useState('');
@@ -139,6 +146,12 @@ export default function TonesScreen() {
       setActiveTone(selectedTone);
     }
   }, [activeTone, selectedTone, setActiveTone]);
+
+  useEffect(() => {
+    if (activeChatId && activeChatId !== selectedChatId) {
+      setSelectedChatId(activeChatId);
+    }
+  }, [activeChatId, selectedChatId]);
 
   const selectedChat = useMemo(
     () => chats.find((chat) => chat.id === selectedChatId) ?? null,
@@ -173,6 +186,7 @@ export default function TonesScreen() {
 
       if (!selectedChatId && nextChats.length > 0) {
         setSelectedChatId(nextChats[0].id);
+        setActiveChatId(nextChats[0].id);
       }
     } catch (error) {
       Alert.alert('Chats unavailable', error instanceof Error ? error.message : 'Could not load chats.');
@@ -247,6 +261,8 @@ export default function TonesScreen() {
 
       setChats((current) => [created.data as WorkspaceChat, ...current]);
       setSelectedChatId(created.data.id);
+      setActiveChatId(created.data.id);
+      setActiveChatId(created.data.id);
       setMessages([]);
       setStreamingText('');
       setComposerNotice('');
@@ -411,6 +427,7 @@ export default function TonesScreen() {
             setUploads((current) => current.filter((upload) => upload.chat_id !== chat.id));
             if (selectedChatId === chat.id) {
               setSelectedChatId(null);
+              setActiveChatId(null);
               setMessages([]);
               setUploads([]);
             }
@@ -571,7 +588,17 @@ export default function TonesScreen() {
     <ScreenContainer scrollable={false} className="bg-background px-0">
       <View className="relative flex-1 bg-background" {...webDropProps}>
         <View className="relative flex-row items-center justify-between border-b border-outline-variant px-4 py-3">
-          <View className="flex-1" />
+          <View className="flex-1 flex-row items-center">
+            {isCompactMobile ? (
+              <Pressable
+                  onPress={() => router.push('/memory' as never)}
+                hitSlop={12}
+                className="h-11 w-11 items-center justify-center rounded-full border border-outline-variant bg-background/30 active:bg-white/10"
+              >
+                <Menu size={18} color="#d3bbff" />
+              </Pressable>
+            ) : null}
+          </View>
           <View className="absolute inset-x-0 items-center pointer-events-none">
             <Text variant="headline" className="text-2xl tracking-tighter">
               Stitch Noir
@@ -594,6 +621,7 @@ export default function TonesScreen() {
           selectedChatId={selectedChatId}
           onSelectChat={(chatId) => {
             setSelectedChatId(chatId);
+            setActiveChatId(chatId);
             setIsMemoryDrawerOpen(false);
           }}
           onRenameChat={handleRenameChat}
@@ -745,7 +773,7 @@ export default function TonesScreen() {
                   />
                 </View>
 
-                <View className="border-t border-outline-variant bg-background px-4 py-4">
+                <View className="border-t border-outline-variant bg-background py-4 -mx-margin-mobile">
                   {uploadProgress !== null ? (
                     <View className="mb-3 rounded-2xl border border-outline-variant bg-surface-container-high px-4 py-3">
                       <View className="mb-2 flex-row items-center justify-between gap-3">
@@ -764,85 +792,54 @@ export default function TonesScreen() {
                       </View>
                     </View>
                   ) : null}
-                  <View className="rounded-[32px] border border-outline-variant bg-surface-container px-4 py-3 shadow-lg shadow-black/20">
-                    {Platform.OS === 'web' ? (
-                      <View className="flex-row items-center gap-3">
-                        <Pressable
-                          onPress={handlePickUpload}
-                          className="h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-background/40 active:bg-white/10"
-                        >
-                          <Paperclip size={22} color="#d3bbff" />
-                        </Pressable>
 
-                        <Pressable
-                          onPress={() => setIsTonePickerOpen(true)}
-                          className="h-11 flex-row items-center gap-2 rounded-full border border-white/10 bg-background/30 px-3 active:bg-white/10"
-                        >
-                          <Sparkles size={16} color="#d3bbff" />
-                          <Text size="sm" className="text-on-surface">{selectedTone}</Text>
-                          <ChevronDown size={14} color="#958da1" />
-                        </Pressable>
-
-                        <TextInput
-                          value={draft}
-                          onChangeText={setDraft}
-                          multiline={false}
-                          returnKeyType="send"
-                          onKeyPress={handleComposerKeyPress}
-                          onSubmitEditing={() => void handleSendMessage()}
-                          blurOnSubmit
-                          placeholder="Ask anything"
-                          placeholderTextColor="#8f879b"
-                          className="h-11 flex-1 text-base text-on-surface pl-1"
-                        />
-
-                        <Pressable
-                          onPress={handleSendMessage}
-                          disabled={isStreaming || loadingChats || isUploading}
-                          className={`h-11 w-11 items-center justify-center rounded-full ${
-                            isStreaming || loadingChats || isUploading
-                              ? 'bg-white/5'
-                              : hasDraftText
-                                ? 'bg-primary'
-                                : 'bg-white/10'
-                          }`}
-                        >
-                          {isStreaming ? (
-                            <ActivityIndicator color="#f4effe" />
-                          ) : (
-                            <ArrowUp size={18} color={hasDraftText ? '#120f16' : '#d9d3e3'} />
-                          )}
-                        </Pressable>
-                      </View>
-                    ) : (
-                      <View className="flex-row items-center gap-3">
-                        <Pressable className="px-3 py-2 rounded-full bg-background/30 mr-3">
-                          <Plus size={20} color="#d3bbff" />
-                        </Pressable>
-                        <TextInput
-                          value={draft}
-                          onChangeText={setDraft}
-                          multiline={false}
-                          returnKeyType="send"
-                          onKeyPress={handleComposerKeyPress}
-                          onSubmitEditing={() => void handleSendMessage()}
-                          blurOnSubmit
-                          placeholder="How can I help you today?"
-                          placeholderTextColor="#bfb7c9"
-                          className="flex-1 text-base text-on-surface"
-                        />
-                        <View className="flex-row items-center gap-3 ml-3">
-                          <Pressable onPress={() => setIsTonePickerOpen(true)} className="px-3 py-2 rounded-full bg-background/20 flex-row items-center gap-2">
-                            <Text className="text-on-surface">{selectedTone}</Text>
-                            <ChevronDown size={14} color="#958da1" />
-                          </Pressable>
-                          <Pressable className="px-2 py-1 rounded-full bg-background/20">
-                            <Sparkles size={18} color="#d3bbff" />
-                          </Pressable>
-                        </View>
-                      </View>
-                    )}
-                  </View>
+                  <ModernComposer
+                    value={draft}
+                    onChangeText={setDraft}
+                    placeholder="Ask anything"
+                    inputClassName="text-base leading-6 text-on-surface"
+                    inputProps={{
+                      returnKeyType: 'default',
+                      blurOnSubmit: false,
+                    }}
+                    toolbarLeft={
+                      <Pressable
+                        onPress={handlePickUpload}
+                        className="h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-background/40 active:bg-white/10"
+                      >
+                        <Paperclip size={22} color="#d3bbff" />
+                      </Pressable>
+                    }
+                    toolbarCenter={
+                      <Pressable
+                        onPress={() => setIsTonePickerOpen(true)}
+                        className="flex-row items-center gap-2 rounded-full border border-white/10 bg-background/30 px-3 py-2 active:bg-white/10"
+                      >
+                        <Sparkles size={16} color="#d3bbff" />
+                        <Text size="sm" className="text-on-surface">{selectedTone}</Text>
+                        <ChevronDown size={14} color="#958da1" />
+                      </Pressable>
+                    }
+                    toolbarRight={
+                      <Pressable
+                        onPress={handleSendMessage}
+                        disabled={isStreaming || loadingChats || isUploading}
+                        className={`h-12 w-12 items-center justify-center rounded-full ${
+                          isStreaming || loadingChats || isUploading
+                            ? 'bg-white/5'
+                            : hasDraftText
+                              ? 'bg-primary'
+                              : 'bg-white/10'
+                        }`}
+                      >
+                        {isStreaming ? (
+                          <ActivityIndicator color="#f4effe" />
+                        ) : (
+                          <ArrowUp size={18} color={hasDraftText ? '#120f16' : '#d9d3e3'} />
+                        )}
+                      </Pressable>
+                    }
+                  />
                 </View>
               </KeyboardAvoidingView>
             ) : (

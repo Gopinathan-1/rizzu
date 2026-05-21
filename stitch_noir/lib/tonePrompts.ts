@@ -3,56 +3,56 @@ export const TONE_OPTIONS = ['Witty', 'Mysterious', 'Savage', 'Professional', 'F
 export type ToneName = (typeof TONE_OPTIONS)[number];
 
 const tonePromptMap: Record<ToneName, string> = {
-  Witty: `Reply in a witty tone.
+  Witty: `Write 3 short replies in a witty tone.
 
-Output rules:
-- Return exactly 3 short line replies.
-- No paragraphs.
-- No bullets.
-- Keep each line clever, playful, and concise.
-- Use light sarcasm when it fits.
+Rules:
+- Return only the 3 replies, one per line.
+- No bullets, labels, or explanations.
+- Keep each line concise, clever, and modern.
+- Use playful sarcasm only when it feels natural.
+- Avoid sounding scripted, corny, or overly try-hard.
 
-Aim for smooth one-liners that feel sharp and modern.`,
-  Mysterious: `Reply in a mysterious tone.
+Target style: sharp, effortless, and socially believable.`,
+  Mysterious: `Write 3 short replies in a mysterious tone.
 
-Output rules:
-- Return exactly 3 short line replies.
-- No paragraphs.
-- No bullets.
-- Keep each line calm, reserved, and intriguing.
-- Hint more than you explain.
+Rules:
+- Return only the 3 replies, one per line.
+- No bullets, labels, or explanations.
+- Keep each line calm, restrained, and intriguing.
+- Hint at meaning without overexplaining.
+- Avoid melodrama and fake-deep phrasing.
 
-Aim for quiet confidence and subtle depth.`,
-  Savage: `Reply in a savage tone.
+Target style: subtle, cool, and quietly confident.`,
+  Savage: `Write 3 short replies in a savage tone.
 
-Output rules:
-- Return exactly 3 short line replies.
-- No paragraphs.
-- No bullets.
+Rules:
+- Return only the 3 replies, one per line.
+- No bullets, labels, or explanations.
 - Keep each line sharp, controlled, and confident.
-- Stay clever, not childish.
+- Stay witty and composed, not childish or rude.
+- Avoid repetitive clapback wording.
 
-Aim for dry humor and clean, decisive comebacks.`,
-  Professional: `Reply in a professional tone.
+Target style: clean, dry, and undeniably confident.`,
+  Professional: `Write 3 short replies in a professional tone.
 
-Output rules:
-- Return exactly 3 short line replies.
-- No paragraphs.
-- No bullets.
-- Keep each line clear, respectful, and polished.
-- Prioritize clarity over personality.
+Rules:
+- Return only the 3 replies, one per line.
+- No bullets, labels, or explanations.
+- Keep each line polished, clear, and respectful.
+- Prefer natural business-like language over stiff corporate phrasing.
+- Avoid anything that feels robotic or generic.
 
-Aim for concise business-appropriate replies.`,
-  Flirty: `Reply in a flirty tone.
+Target style: concise, credible, and refined.`,
+  Flirty: `Write 3 short replies in a flirty tone.
 
-Output rules:
-- Return exactly 3 short line replies.
-- No paragraphs.
-- No bullets.
-- Keep each line warm, playful, and charming.
-- Keep it light and natural.
+Rules:
+- Return only the 3 replies, one per line.
+- No bullets, labels, or explanations.
+- Keep each line warm, playful, and smooth.
+- Make it feel effortless, not thirsty.
+- Avoid overused pickup-line energy.
 
-Aim for smooth teasing and effortless charm.`,
+Target style: charming, tasteful, and natural.`,
 };
 
 export function normalizeToneName(tone?: string | null): ToneName {

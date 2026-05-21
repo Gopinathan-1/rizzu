@@ -286,7 +286,14 @@ export async function streamWorkspaceReply(params: {
 }
 
 export async function generateChatTitle(message: string) {
-  const prompt = `Create a short, useful chat title from this message. Return JSON exactly like {"title":"..."}.\n\nMessage: ${message}`;
+  const prompt = [
+    'Create a short, useful chat title from the message below.',
+    'Return JSON exactly like {"title":"..."}.',
+    'Make it 2 to 6 words, title case, and easy to scan.',
+    'Avoid generic labels like Chat 1 or New Conversation unless nothing else fits.',
+    'Do not include quotes around the title value.',
+    `Message: ${message}`,
+  ].join('\n\n');
   const response = await generateText(prompt);
   const parsed = extractJson<{ title: string }>(response);
   return parsed.title.trim().replace(/^"|"$/g, '').slice(0, 60) || DEFAULT_CHAT_TITLE;

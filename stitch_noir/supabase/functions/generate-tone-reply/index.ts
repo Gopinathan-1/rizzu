@@ -1,17 +1,29 @@
 import { generateText } from '../_shared/gemini.ts';
 import { getAuthedClient, handleCorsPreflight, withCors } from '../_shared/supabase.ts';
+import { getTonePrompt, normalizeToneName } from '../../../lib/tonePrompts.ts';
 
-function extractJson<T>(text: string): T {
+function parseReplies(text: string): string[] {
   const trimmed = text.trim();
+
   try {
-    return JSON.parse(trimmed) as T;
-  } catch {
-    const match = trimmed.match(/\[[\s\S]*\]|\{[\s\S]*\}/);
-    if (!match) {
-      throw new Error('Could not parse response: ' + trimmed);
+    const parsed = JSON.parse(trimmed) as unknown;
+    if (Array.isArray(parsed)) {
+      return parsed
+        .map((item) => String(item).trim())
+        .filter(Boolean)
+        .slice(0, 3);
     }
-    return JSON.parse(match[0]) as T;
+  } catch {
+    // Fall back to line parsing.
   }
+
+  return trimmed
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => line.replace(/^[-*•\d.)\s]+/, '').replace(/^"|"$/g, '').trim())
+    .filter(Boolean)
+    .slice(0, 3);
 }
 
 declare const Deno: {
@@ -49,13 +61,17 @@ Deno.serve(async (request) => {
 
     console.log('[generate-tone-reply] Generating replies for tone:', tone);
 
-    const prompt = `Generate 3 unique replies to the following conversation.\nApply the ${tone} tone strictly.\nReplies should feel natural, not robotic.\nReturn as JSON array: ["reply1", "reply2", "reply3"]\n\nContext:\n${context}`;
+    const prompt = `${getTonePrompt(normalizeToneName(tone))}
+
+  Context:
+  ${context}
+
+  Return exactly 3 replies, one per line, with no labels, bullets, or extra commentary.`;
 
     const response = await generateText(prompt);
     console.log('[generate-tone-reply] Response received');
     
-    const replies = extractJson<string[]>(response);
-    const slicedReplies = Array.isArray(replies) ? replies.slice(0, 3) : [];
+    const slicedReplies = parseReplies(response);
 
     const result: GenerateReplyResponse = {
       replies: slicedReplies,

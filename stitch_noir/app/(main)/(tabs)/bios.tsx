@@ -1,10 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { View, TextInput, Pressable, ActivityIndicator, Alert, ScrollView, Image, Modal, Platform } from 'react-native';
+import * as DocumentPicker from 'expo-document-picker';
+import * as FileSystem from 'expo-file-system';
 import { useRouter } from 'expo-router';
 import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { Button } from '@/components/ui/Button';
+import { ModernComposer } from '@/components/ui/ModernComposer';
 import { Settings, Sparkles, Paperclip, ArrowUp, ChevronDown, Plus } from 'lucide-react-native';
 import { TONE_OPTIONS, normalizeToneName } from '@/lib/tonePrompts';
 import { useAppStore } from '@/store/useAppStore';
@@ -33,60 +36,40 @@ export default function BiosScreen() {
 
     setLoading(true);
     try {
-const prompt = `
-You are an elite dating app and social media bio writer.
+      const prompt = `
+You write premium social bios that feel human, current, and believable.
 
-Your job is to create bios that:
-1. CLEARLY reflect the user's actual interests/personality
-2. Match the selected vibe naturally
-3. Sound like real modern profiles people would actually use
+Goal:
+- Turn the user's actual interests and vibe into 3 short bio options
+- Make each option feel distinct, modern, and easy to use on dating apps or social profiles
+- Avoid anything that sounds generic, cheesy, overly poetic, or AI-generated
 
-USER DESCRIPTION:
+User input:
 "${bioInput}"
 
-SELECTED VIBE:
+Selected vibe:
 "${selectedTone}"
 
-STRICT RULES:
-- Every bio MUST clearly relate to the user's input
-- The connection to the user's interests should be obvious instantly
-- Do NOT generate vague quotes or random poetic lines
-- Avoid overly deep, dramatic, or cringe wording
-- Bios must feel realistic, modern, confident, and attractive
-- Keep them short, punchy, and memorable
-- One line only
+Style rules:
+- Each bio must clearly reflect the user's input
+- Keep each bio one line only
 - Maximum 50 characters
 - No hashtags
 - No quotation marks
 - No forced emojis
-- Make all 3 bios noticeably different
-- Prioritize clarity + personality over fancy wording
+- Make the wording natural, specific, and social-media-ready
+- Keep the tone subtle, confident, and fresh
+- Avoid repeating sentence structure across the 3 results
+- Prefer real-world phrasing over clever but fake-sounding lines
 
-GOOD BIO STYLE EXAMPLES:
-Input: "I love romance anime"
-Good:
-- "Romance anime set my standards"
-- "Living in a shoujo storyline"
-- "Anime love stories > real ones"
+Tone guidance:
+- Witty: sharp, playful, light
+- Mysterious: understated, intriguing, cool
+- Savage: confident, dry, controlled
+- Professional: polished, smart, composed
+- Flirty: warm, charming, effortless
 
-Bad:
-- "Chasing hearts drawn in ink"
-- "Some stories feel unreal"
-- "Lost between silent emotions"
-
-TONE GUIDE:
-- Witty → playful, clever, fun
-- Mysterious → subtle, intriguing, attractive
-- Savage → bold, cocky, teasing
-- Professional → polished, smart, classy
-- Flirty → charming, smooth, confident
-
-OUTPUT RULES:
-- Return ONLY a valid JSON array
-- No explanations
-- No markdown
-
-FORMAT:
+Return only valid JSON:
 ["bio1", "bio2", "bio3"]
 `;
 
@@ -99,6 +82,25 @@ FORMAT:
       Alert.alert('Generation failed', error instanceof Error ? error.message : 'Please try again.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handlePickReference = async () => {
+    const result = await DocumentPicker.getDocumentAsync({
+      copyToCacheDirectory: true,
+      multiple: false,
+      type: ['text/plain', 'text/markdown'],
+    });
+
+    if (result.canceled || !result.assets[0]) {
+      return;
+    }
+
+    try {
+      const referenceText = await FileSystem.readAsStringAsync(result.assets[0].uri);
+      setBioInput((current) => (current.trim() ? `${current.trim()}\n\n${referenceText.trim()}` : referenceText.trim()));
+    } catch {
+      Alert.alert('Upload failed', 'Only text files are supported here.');
     }
   };
 
@@ -116,7 +118,7 @@ FORMAT:
         </View>
       </View>
 
-        <View className="flex-1 px-4">
+        <View className="flex-1">
           <View className="mt-8 mb-6">
             {/* <Text variant="display" className="text-4xl">Bio Writer</Text> */}
           </View>
@@ -157,82 +159,47 @@ FORMAT:
           </ScrollView>
 
           {/* Composer pinned to bottom */}
-          <View className="border-t border-outline-variant bg-background px-4 py-4">
-            {Platform.OS === 'web' ? (
-              <View className="rounded-[32px] border border-outline-variant bg-surface-container px-4 py-3 shadow-lg shadow-black/20">
-                <View className="flex-row items-center gap-3">
-                  <Pressable
-                    onPress={() => {}}
-                    className="h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-background/40 active:bg-white/10"
-                  >
-                    <Paperclip size={22} color="#d3bbff" />
-                  </Pressable>
-
-                  <Pressable
-                    onPress={() => setIsTonePickerOpen(true)}
-                    className="h-11 flex-row items-center gap-2 rounded-full border border-white/10 bg-background/30 px-3 active:bg-white/10"
-                  >
-                    <Sparkles size={16} color="#d3bbff" />
-                    <Text size="sm" className="text-on-surface">{selectedTone}</Text>
-                    <ChevronDown size={14} color="#958da1" />
-                  </Pressable>
-
-                  <TextInput
-                    value={bioInput}
-                    onChangeText={setBioInput}
-                    multiline={false}
-                      returnKeyType="send"
-                      onSubmitEditing={() => {
-                        void handleGenerate();
-                        setBioInput('');
-                      }}
-                    blurOnSubmit
-                    placeholder="Describe your vibe..."
-                    placeholderTextColor="#8f879b"
-                    className="h-11 flex-1 text-base text-on-surface pl-1"
-                  />
-
-                  <Pressable
-                    onPress={handleGenerate}
-                    disabled={loading}
-                    className={`h-11 w-11 items-center justify-center rounded-full ${loading ? 'bg-white/5' : bioInput.trim() ? 'bg-primary' : 'bg-white/10'}`}
-                  >
-                    {loading ? <ActivityIndicator color="#f4effe" /> : <ArrowUp size={18} color={bioInput.trim() ? '#120f16' : '#d9d3e3'} />}
-                  </Pressable>
-                </View>
-              </View>
-            ) : (
-              <View className="rounded-[32px] bg-surface-container p-3 flex-row items-center">
+          <View className="border-t border-outline-variant bg-background py-4 -mx-margin-mobile">
+            <ModernComposer
+              value={bioInput}
+              onChangeText={setBioInput}
+              placeholder="Describe your vibe..."
+              inputClassName="text-base leading-6 text-on-surface"
+              inputProps={{
+                returnKeyType: 'default',
+                blurOnSubmit: false,
+              }}
+              toolbarLeft={
                 <Pressable
-                  onPress={() => {} }
-                  className="h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-background/40 mr-3"
+                  onPress={handlePickReference}
+                  className="h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-background/40 active:bg-white/10"
                 >
                   <Paperclip size={20} color="#d3bbff" />
                 </Pressable>
-
+              }
+              toolbarCenter={
                 <Pressable
                   onPress={() => setIsTonePickerOpen(true)}
-                  className="h-11 flex-row items-center gap-2 rounded-full border border-white/10 bg-background/30 px-3 mr-3 active:bg-white/10"
+                  className="flex-row items-center gap-2 rounded-full border border-white/10 bg-background/30 px-3 py-2 active:bg-white/10"
                 >
                   <Sparkles size={16} color="#d3bbff" />
                   <Text size="sm" className="text-on-surface">{selectedTone}</Text>
                   <ChevronDown size={14} color="#958da1" />
                 </Pressable>
-
-                <TextInput
-                  value={bioInput}
-                  onChangeText={setBioInput}
-                  multiline={false}
-                  placeholder="Describe your vibe..."
-                  onSubmitEditing={() => {
+              }
+              toolbarRight={
+                <Pressable
+                  onPress={() => {
                     void handleGenerate();
                     setBioInput('');
                   }}
-                  placeholderTextColor="#8f879b"
-                  className="flex-1 text-base text-on-surface pl-2"
-                />
-              </View>
-            )}
+                  disabled={loading}
+                  className={`h-12 w-12 items-center justify-center rounded-full ${loading ? 'bg-white/5' : bioInput.trim() ? 'bg-primary' : 'bg-white/10'}`}
+                >
+                  {loading ? <ActivityIndicator color="#f4effe" /> : <ArrowUp size={18} color={bioInput.trim() ? '#120f16' : '#d9d3e3'} />}
+                </Pressable>
+              }
+            />
           </View>
 
                 <Modal visible={isTonePickerOpen} transparent animationType="fade" onRequestClose={() => setIsTonePickerOpen(false)}>

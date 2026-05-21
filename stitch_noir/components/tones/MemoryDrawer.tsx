@@ -11,6 +11,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { Menu } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChatSidebar } from '@/components/tones/ChatSidebar';
 import type { WorkspaceChat } from '@/services/chatWorkspace';
 
@@ -37,6 +38,7 @@ function clamp(value: number, lower: number, upper: number) {
 }
 
 function DrawerToggleButton({ open, onPress }: { open: boolean; onPress: () => void }) {
+  const insets = useSafeAreaInsets();
   const progress = useSharedValue(open ? 1 : 0);
 
   useEffect(() => {
@@ -54,10 +56,10 @@ function DrawerToggleButton({ open, onPress }: { open: boolean; onPress: () => v
 
   return (
     <Animated.View
-      style={[styles.toggleShadow, containerStyle]}
-      className="absolute left-3 top-3 z-50 overflow-hidden rounded-[16px] border border-white/10 bg-surface-container/80"
+      style={[styles.toggleShadow, containerStyle, { top: Math.max(12, insets.top + 8) }]}
+      className="absolute left-3 z-50 overflow-hidden rounded-[16px] border border-white/10 bg-surface-container/80"
     >
-      <Pressable onPress={onPress} className="h-11 w-11 items-center justify-center active:opacity-80">
+      <Pressable onPress={onPress} hitSlop={12} className="h-12 w-12 items-center justify-center active:opacity-80">
         <Menu size={20} color="#f4effe" />
       </Pressable>
     </Animated.View>
@@ -170,7 +172,7 @@ export function MemoryDrawer({
 
   return (
     <View pointerEvents="box-none" className="absolute inset-0 z-40">
-      <DrawerToggleButton open={open} onPress={() => onOpenChange(!open)} />
+      {!isMobile ? <DrawerToggleButton open={open} onPress={() => onOpenChange(!open)} /> : null}
 
       <Animated.View pointerEvents={open ? 'auto' : 'none'} style={[StyleSheet.absoluteFillObject, backdropStyle]} className="bg-black/55">
         <Pressable onPress={() => onOpenChange(false)} className="flex-1">

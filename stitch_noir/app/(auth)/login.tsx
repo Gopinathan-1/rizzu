@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { useRouter } from 'expo-router';
-import { Mail, Lock, ArrowRight } from 'lucide-react-native';
+import { Mail, Lock, ArrowRight, Check } from 'lucide-react-native';
 import { authService } from '@/services/auth';
 
 export default function LoginScreen() {
@@ -13,6 +13,8 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [focusedField, setFocusedField] = useState<'email' | 'password' | null>(null);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -49,14 +51,16 @@ export default function LoginScreen() {
           <Card className="bg-surface-low border border-outline-variant p-5 flex-row items-center rounded-2xl">
             <Mail size={20} color="#958da1" className="mr-3" />
             <TextInput 
-              className="flex-1 text-on-surface text-base font-inter"
-              placeholder="name@example.com"
+              className="flex-1 pl-1 text-on-surface text-base font-inter"
+              placeholder={focusedField === 'email' ? '' : 'name@example.com'}
               placeholderTextColor="#4a4455"
               autoCapitalize="none"
               keyboardType="email-address"
               value={email}
               onChangeText={setEmail}
               editable={!loading}
+              onFocus={() => setFocusedField('email')}
+              onBlur={() => setFocusedField((current) => (current === 'email' ? null : current))}
             />
           </Card>
         </View>
@@ -66,15 +70,27 @@ export default function LoginScreen() {
           <Card className="bg-surface-low border border-outline-variant p-5 flex-row items-center rounded-2xl">
             <Lock size={20} color="#958da1" className="mr-3" />
             <TextInput 
-              className="flex-1 text-on-surface text-base font-inter"
-              placeholder="••••••••"
+              className="flex-1 pl-1 text-on-surface text-base font-inter"
+              placeholder={focusedField === 'password' ? '' : '••••••••'}
               placeholderTextColor="#4a4455"
-              secureTextEntry
+              secureTextEntry={!showPassword}
               value={password}
               onChangeText={setPassword}
               editable={!loading}
+              onFocus={() => setFocusedField('password')}
+              onBlur={() => setFocusedField((current) => (current === 'password' ? null : current))}
             />
           </Card>
+          <Pressable
+            onPress={() => setShowPassword((current) => !current)}
+            disabled={loading}
+            className="mt-3 flex-row items-center gap-3 self-start rounded-full border border-outline-variant bg-surface-low px-3 py-2"
+          >
+            <View className={`h-4 w-4 items-center justify-center rounded-[4px] border ${showPassword ? 'border-white bg-primary' : 'border-outline-variant bg-transparent'}`}>
+              {showPassword ? <Check size={14} color="#ffffff" strokeWidth={3} /> : null}
+            </View>
+            <Text size="sm" className="text-on-surface-variant">Show Password</Text>
+          </Pressable>
           <Pressable className="mt-4 items-end" disabled={loading}>
             <Text className="text-primary text-xs font-bold tracking-wider">FORGOT PASSWORD?</Text>
           </Pressable>
