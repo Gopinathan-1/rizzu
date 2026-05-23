@@ -11,6 +11,8 @@ import {
   Modal,
   Platform,
   useWindowDimensions,
+  ScrollView,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import { Text } from '@/components/ui/Text';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
@@ -30,6 +32,7 @@ import {
   Menu,
 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
+import { CHOCOLATE_TRUFFLE_DARK, CHOCOLATE_TRUFFLE_LIGHT } from '@/theme/palette';
 import * as DocumentPicker from 'expo-document-picker';
 import {
   fetchWorkspaceChats,
@@ -625,10 +628,7 @@ export default function TonesScreen() {
           <View className="absolute inset-x-0 items-center pointer-events-none">
             <View className="flex-row items-center">
               <Text variant="headline" className="text-2xl tracking-tighter text-text-primary">
-                Stitch 
-              </Text>
-              <Text variant="headline" className="text-2xl tracking-tighter text-accent">
-                Noir
+                RIZZ
               </Text>
             </View>
           </View>
@@ -802,7 +802,7 @@ export default function TonesScreen() {
                   />
                 </View>
 
-                <View className="border-t border-border bg-bg-surface py-4 -mx-margin-mobile">
+                <View className="bg-background py-4 -mx-margin-mobile">
                   {uploadProgress !== null ? (
                     <View className="mb-3 rounded-2xl border border-border bg-bg-elevated px-4 py-3">
                       <View className="mb-2 flex-row items-center justify-between gap-3">
@@ -913,8 +913,9 @@ export default function TonesScreen() {
         </Modal>
 
         <Modal visible={isTonePickerOpen} transparent animationType="fade" onRequestClose={() => setIsTonePickerOpen(false)}>
-          <Pressable className="flex-1 justify-end bg-black/55 px-4 pb-6" onPress={() => setIsTonePickerOpen(false)}>
-            <Pressable className="overflow-hidden rounded-t-[20px] border border-border bg-bg-elevated p-4" onPress={(event) => event.stopPropagation()}>
+          <TouchableWithoutFeedback onPress={() => setIsTonePickerOpen(false)}>
+            <View className="flex-1 justify-end bg-black/55 px-4 pb-6">
+              <View className="overflow-hidden rounded-t-[20px] border border-border bg-bg-elevated p-4" onStartShouldSetResponder={() => true}>
               <View className="mb-3 flex-row items-center justify-between">
                 <Text weight="bold" size="lg">Choose tone</Text>
                 <Pressable onPress={() => setIsTonePickerOpen(false)} className="p-2">
@@ -922,30 +923,44 @@ export default function TonesScreen() {
                 </Pressable>
               </View>
               <Text className="mb-3 text-on-surface-variant">Replies will follow the selected prompt style.</Text>
-              <View className="flex-row flex-wrap gap-3">
-                {toneOptions.map((tone) => {
-                  const isSelected = tone === selectedTone;
-                  return (
-                    <Pressable
-                      key={tone}
-                      onPress={() => {
-                        setActiveTone(tone);
-                        setIsTonePickerOpen(false);
-                      }}
-                      className="min-w-[120px] max-w-[48%] rounded-2xl border p-3"
-                      style={{
-                        borderColor: isSelected ? (isLight ? '#713600' : '#FDFBD4') : undefined,
-                        backgroundColor: isSelected ? (isLight ? '#713600' : '#FDFBD4') : undefined,
-                      }}
-                    >
-                      <Text weight="semibold" style={{ color: isSelected ? (isLight ? '#FDFBD4' : '#38240D') : (isLight ? 'rgba(107,74,38,0.65)' : 'rgba(253,251,212,0.9)') }}>{tone}</Text>
-                      <Text size="xs" style={{ color: isSelected ? (isLight ? 'rgba(253,251,212,0.9)' : '#38240D') : (isLight ? 'rgba(107,74,38,0.65)' : 'rgba(253,251,212,0.72)') }} numberOfLines={2}>{getToneHint(tone)}</Text>
-                    </Pressable>
-                  );
-                })}
+              <View className="mt-2">
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  className="-mx-5 px-5"
+                  contentContainerStyle={{ paddingRight: 40 }}
+                >
+                  <View className="flex-row gap-2">
+                    {toneOptions.map((tone) => {
+                      const isSelected = tone === selectedTone;
+                      const bgColor = isSelected ? (isLight ? CHOCOLATE_TRUFFLE_LIGHT.accent : CHOCOLATE_TRUFFLE_DARK.accent) : undefined;
+                      const borderColor = isSelected ? (isLight ? CHOCOLATE_TRUFFLE_LIGHT.accent : CHOCOLATE_TRUFFLE_DARK.accent) : undefined;
+                      const textColor = isSelected ? (isLight ? CHOCOLATE_TRUFFLE_LIGHT.bgPrimary : CHOCOLATE_TRUFFLE_DARK.bgPrimary) : undefined;
+                      return (
+                        <Pressable
+                          key={tone}
+                          onPress={() => {
+                            setActiveTone(tone);
+                            setIsTonePickerOpen(false);
+                          }}
+                          style={{
+                            paddingVertical: 8,
+                            paddingHorizontal: 12,
+                            borderRadius: 999,
+                            borderColor,
+                            backgroundColor: bgColor,
+                          }}
+                        >
+                          <Text weight="bold" size="sm" style={textColor ? { color: textColor } : undefined}>{tone}</Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                </ScrollView>
               </View>
-            </Pressable>
-          </Pressable>
+              </View>
+            </View>
+          </TouchableWithoutFeedback>
         </Modal>
       </View>
     </ScreenContainer>

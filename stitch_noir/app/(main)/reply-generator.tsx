@@ -89,7 +89,7 @@ export default function ReplyGeneratorScreen() {
   return (
     <ScreenContainer scrollable={false} className="bg-background">
       <View className="flex-row items-center justify-between py-4 h-16">
-        <Text variant="headline" className="text-2xl tracking-tighter">Stitch Noir</Text>
+        <Text variant="headline" className="text-2xl tracking-tighter">RIZZ</Text>
         <View className="flex-row items-center gap-4">
           <Pressable className="p-2 rounded-lg active:bg-surface-high" onPress={() => router.push('/settings')}>
             <Settings size={22} color={isLight ? CHOCOLATE_TRUFFLE_LIGHT.textPrimary : CHOCOLATE_TRUFFLE_DARK.textPrimary} />

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Pressable, Alert, TextInput } from 'react-native';
+import { View, Pressable, Alert, TextInput, Modal, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
@@ -20,13 +20,17 @@ export default function SettingsScreen() {
   const logout = useAppStore((state) => state.logout);
   const [fullName, setFullName] = useState(user?.full_name ?? '');
   const [saving, setSaving] = useState(false);
+  const [logoutConfirmVisible, setLogoutConfirmVisible] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
 
   useEffect(() => {
     setFullName(user?.full_name ?? '');
   }, [user?.full_name]);
 
   const performLogout = async () => {
+    setLoggingOut(true);
     const { error } = await authService.logout();
+    setLoggingOut(false);
     if (error) {
       Alert.alert('Error', 'Failed to logout');
       return;
@@ -36,10 +40,20 @@ export default function SettingsScreen() {
   };
 
   const handleLogout = () => {
-    Alert.alert('Log out?', 'You will need to sign in again to access your workspace.', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Log Out', style: 'destructive', onPress: () => void performLogout() },
-    ]);
+    setLogoutConfirmVisible(true);
+  };
+
+  const cancelLogout = () => {
+    if (loggingOut) {
+      return;
+    }
+
+    setLogoutConfirmVisible(false);
+  };
+
+  const confirmLogout = () => {
+    setLogoutConfirmVisible(false);
+    void performLogout();
   };
 
   const handleSaveProfile = async () => {
@@ -168,6 +182,62 @@ export default function SettingsScreen() {
         <Text variant="label" className="mb-2 tracking-[0.18em]">Support</Text>
         <MenuItem icon={LogOut} label="Log Out" onPress={handleLogout} />
       </View>
+
+      <Modal
+        visible={logoutConfirmVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={cancelLogout}
+      >
+        <Pressable className="flex-1 items-center justify-center bg-black/55 px-6" onPress={cancelLogout}>
+          <Pressable
+            onPress={() => undefined}
+            className="w-full max-w-[420px] overflow-hidden rounded-[32px] border border-outline-variant bg-surface-container p-6"
+            style={{
+              shadowColor: '#000',
+              shadowOpacity: 0.24,
+              shadowRadius: 24,
+              shadowOffset: { width: 0, height: 16 },
+              elevation: 18,
+            }}
+          >
+            <View className="mb-5 h-14 w-14 items-center justify-center rounded-full bg-[rgba(192,88,0,0.12)]">
+              <LogOut size={26} color={isLight ? CHOCOLATE_TRUFFLE_LIGHT.danger : CHOCOLATE_TRUFFLE_DARK.danger} />
+            </View>
+
+            <Text variant="headline" className="mb-2">
+              Log out?
+            </Text>
+            <Text className="mb-6 text-base text-on-surface-variant">
+              You will need to sign in again to access your workspace.
+            </Text>
+
+            <View className="flex-row gap-3">
+              <Pressable
+                onPress={cancelLogout}
+                disabled={loggingOut}
+                className="flex-1 items-center justify-center rounded-full border border-outline-variant bg-surface px-4 py-4 active:opacity-80"
+              >
+                <Text weight="semibold">Cancel</Text>
+              </Pressable>
+
+              <Pressable
+                onPress={confirmLogout}
+                disabled={loggingOut}
+                className="flex-1 flex-row items-center justify-center rounded-full bg-[rgba(192,88,0,0.14)] px-4 py-4 active:opacity-80"
+              >
+                {loggingOut ? (
+                  <ActivityIndicator size="small" color={isLight ? CHOCOLATE_TRUFFLE_LIGHT.danger : CHOCOLATE_TRUFFLE_DARK.danger} />
+                ) : (
+                  <Text weight="bold" style={{ color: isLight ? CHOCOLATE_TRUFFLE_LIGHT.danger : CHOCOLATE_TRUFFLE_DARK.danger }}>
+                    Log out
+                  </Text>
+                )}
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       {/* Branding removed per request */}
     </ScreenContainer>

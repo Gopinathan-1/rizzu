@@ -55,9 +55,9 @@ export default function SignupScreen() {
   return (
     <ScreenContainer>
       <View className="mt-10 mb-8">
-        <Text variant="display" className="text-5xl tracking-tight">Create{"\n"}Account.</Text>
+        <Text variant="display" className="text-5xl tracking-tight">Create Account.</Text>
         <Text className="mt-3 max-w-[320px] text-base leading-6 text-text-secondary">
-          Join the elite world of AI social intelligence.
+          Start crafting personalized replies that make your conversations shine.
         </Text>
       </View>
 
@@ -119,7 +119,7 @@ export default function SignupScreen() {
             disabled={loading}
             className="mt-3 flex-row items-center gap-3 self-start rounded-full border border-border bg-bg-elevated px-3 py-2"
           >
-            <View className={`h-4 w-4 items-center justify-center rounded-[4px] border ${showPassword ? 'border-accent bg-accent' : 'border-border bg-transparent'}`}>
+            <View className={`h-4 w-4 items-center justify-center rounded-[4px] border ${showPassword ? 'border-accent bg-accent' : 'border-border bg-white'}`}>
               {showPassword ? <Check size={14} color={isLight ? CHOCOLATE_TRUFFLE_LIGHT.bgPrimary : CHOCOLATE_TRUFFLE_DARK.bgPrimary} strokeWidth={3} /> : null}
             </View>
             <Text size="sm" className="text-text-secondary">Show Password</Text>

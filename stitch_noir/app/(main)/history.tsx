@@ -190,7 +190,7 @@ export default function HistoryScreen() {
             {items.length === 0 ? (
               <EmptyState
                 title="No history yet"
-                message="Every generation, reply set, and analysis will appear here once you start using Stitch Noir."
+                message="Every generation, reply set, and analysis will appear here once you start using RIZZ."
                 icon={History}
               />
             ) : (

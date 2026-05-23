@@ -91,14 +91,33 @@ export default function HomeScreen() {
 
   const handleSendMessage = async () => {
     const trimmedConversation = conversation.trim();
+    const attachedScreenshot = screenshotAsset
+      ? { ...screenshotAsset }
+      : null;
+    const attachedPreview = screenshotPreview;
 
-    if (!trimmedConversation && !screenshotAsset) {
+    if (!trimmedConversation && !attachedScreenshot) {
       setAnalysisError('Paste a conversation or upload an image first.');
       return;
     }
 
+    const pendingMessageId = Date.now();
+    setConversation('');
     setAnalysisLoading(true);
     setAnalysisError('');
+
+    setHistoryMessages((current) => [
+      ...current,
+      {
+        id: pendingMessageId,
+        input: trimmedConversation,
+        screenshotAsset: attachedScreenshot,
+        screenshotPreview: attachedPreview,
+        analysis: null,
+        replies: [],
+        isTyping: true,
+      },
+    ]);
 
     try {
       let nextAnalysis = analysis;
@@ -113,19 +132,25 @@ export default function HomeScreen() {
         setAnalysisStore({ tone: result.tone, mood: result.mood, replyStyles: result.replyStyles });
       }
 
-      appendMessageToHistory({
-        input: trimmedConversation,
-        screenshotAsset,
-        screenshotPreview,
-        analysis: nextAnalysis,
-        replies: nextReplies,
-      });
+      setHistoryMessages((current) =>
+        current.map((message) =>
+          message.id === pendingMessageId
+            ? {
+                ...message,
+                analysis: nextAnalysis,
+                replies: nextReplies,
+                isTyping: false,
+              }
+            : message
+        )
+      );
 
-      setConversation('');
       removeCurrentAttachment();
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Analysis failed';
       setAnalysisError(message);
+      setHistoryMessages((current) => current.filter((message) => message.id !== pendingMessageId));
+      setConversation(trimmedConversation);
       console.error('Analysis error:', error);
     } finally {
       setAnalysisLoading(false);
@@ -342,14 +367,13 @@ export default function HomeScreen() {
 
   return (
     <ScreenContainer scrollable={false} className="bg-background">
-      <View className="flex-row items-center justify-between py-4 h-16">
-        <View className="flex-1" />
-        <View className="absolute inset-x-0 items-center pointer-events-none flex-row">
-          <Text variant="headline" className="text-2xl tracking-tighter text-text-primary">Stitch </Text>
-          <Text variant="headline" className="text-2xl tracking-tighter text-accent">Noir</Text>
+      <View className="h-16 flex-row items-center py-4">
+        <View className="w-12" />
+        <View className="flex-1 items-center pointer-events-none">
+          <Text variant="headline" className="text-2xl tracking-tighter text-text-primary">RIZZ</Text>
         </View>
-        <View className="flex-row items-center gap-4">
-            <Pressable className="p-2 rounded-lg active:bg-surface-high" onPress={() => router.push('/settings')}>
+        <View className="w-12 items-end">
+          <Pressable className="p-2 rounded-lg active:bg-surface-high" onPress={() => router.push('/settings')}>
             <Settings size={22} color={isLight ? '#1A1A1A' : '#FDFBD4'} />
           </Pressable>
         </View>
@@ -382,6 +406,18 @@ export default function HomeScreen() {
                       {msg.screenshotPreview}
                     </Text>
                   ) : null}
+                </View>
+              ) : null}
+
+              {msg.isTyping ? (
+                <View className="mt-3 items-start">
+                  <Text size="sm" className="mb-2 text-on-surface-variant">Typing</Text>
+                  <View className={isCompactMobile ? 'w-full rounded-[20px] border border-border bg-ai-bubble p-4' : 'max-w-[82%] rounded-[20px] border border-border bg-ai-bubble p-4'}>
+                    <View className="flex-row items-center gap-3">
+                      <ActivityIndicator size="small" color={isLight ? '#713600' : '#FDFBD4'} />
+                      <Text className="text-text-primary">Typing...</Text>
+                    </View>
+                  </View>
                 </View>
               ) : null}
 

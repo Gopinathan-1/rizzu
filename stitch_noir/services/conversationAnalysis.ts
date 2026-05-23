@@ -93,6 +93,9 @@ async function generateToneRepliesViaSupabase(
     throw new Error('Missing Supabase URL');
   }
 
+  const compactContext = context.replace(/\s+/g, ' ').trim();
+  const trimmedContext = compactContext.length > 4000 ? compactContext.slice(-4000) : compactContext;
+
   const response = await fetch(`${supabaseUrl.replace(/\/$/, '')}/functions/v1/generate-tone-reply`, {
     method: 'POST',
     headers: {
@@ -100,7 +103,7 @@ async function generateToneRepliesViaSupabase(
       Authorization: `Bearer ${accessToken}`,
       apikey: process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? '',
     },
-    body: JSON.stringify({ tone, context }),
+    body: JSON.stringify({ tone, context: trimmedContext }),
   });
 
   if (!response.ok) {
@@ -201,10 +204,13 @@ ${extractedText}`;
 }
 
 async function generateToneRepliesViaLocalGemini(tone: string, context: string): Promise<{ replies: string[] }> {
+  const compactContext = context.replace(/\s+/g, ' ').trim();
+  const trimmedContext = compactContext.length > 4000 ? compactContext.slice(-4000) : compactContext;
+
   const prompt = `${getTonePrompt(normalizeToneName(tone))}
 
 Conversation:
-${context}
+${trimmedContext}
 
 Make the replies feel like real text messages based on the latest user input and the surrounding context.
 

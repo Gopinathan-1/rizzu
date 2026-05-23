@@ -69,7 +69,7 @@ export function ChatSidebar({
         {!hasChats ? (
           <EmptyState
             title={searchText ? 'No chats found' : 'No conversations yet'}
-            message={searchText ? 'Try a different search, or start a new chat to build your workspace.' : 'Start a chat and Stitch Noir will keep the thread, tone, and history organized for you.'}
+            message={searchText ? 'Try a different search, or start a new chat to build your workspace.' : 'Start a chat and RIZZ will keep the thread, tone, and history organized for you.'}
             icon={Sparkles}
             action={<Button label="New chat" icon={Plus} size="sm" onPress={onNewChat} className="rounded-full" />}
           />

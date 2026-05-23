@@ -46,15 +46,28 @@ Deno.serve(async (request) => {
     }
 
     const fileBuffer = new Uint8Array(await fileResponse.data.arrayBuffer());
-    const extractedText = isTextFile(filename, fileType)
-      ? new TextDecoder().decode(fileBuffer)
-      : await extractTextFromBinary(fileBuffer, fileType, filename);
+    let extractedText = '';
 
-    const summary = await summarizeMemory({
-      chatTitle: filename,
-      extractedText,
-      responseText: extractedText.slice(0, 3000),
-    });
+    try {
+      extractedText = isTextFile(filename, fileType)
+        ? new TextDecoder().decode(fileBuffer)
+        : await extractTextFromBinary(fileBuffer, fileType, filename);
+    } catch (error) {
+      console.warn('[process-upload] Text extraction failed, saving upload without extracted text.', error);
+      extractedText = '';
+    }
+
+    let summary = `Uploaded file: ${filename}`;
+
+    try {
+      summary = await summarizeMemory({
+        chatTitle: filename,
+        extractedText: extractedText || `Uploaded image or file: ${filename}`,
+        responseText: extractedText ? extractedText.slice(0, 3000) : `Uploaded image or file: ${filename}`,
+      });
+    } catch (error) {
+      console.warn('[process-upload] Summary generation failed, using fallback summary.', error);
+    }
 
     const db = getServiceRoleClient();
     const { data: upload } = await db

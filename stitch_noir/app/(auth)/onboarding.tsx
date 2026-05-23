@@ -25,7 +25,7 @@ const QUESTIONS: Array<{
 }> = [
   {
     key: 'useCase',
-    title: 'What are you using Stitch Noir for?',
+    title: 'What are you using RIZZ for?',
     subtitle: 'This sets the overall tone pack.',
     options: ['Dating', 'Social', 'Work', 'Everything'] as const,
   },

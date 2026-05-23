@@ -41,11 +41,11 @@ export default function LoginScreen() {
 
   return (
     <ScreenContainer className="bg-background">
-      <View className="mt-16 mb-12">
-        <Text variant="display" className="text-6xl tracking-tightest">Welcome{"\n"}Back.</Text>
+      <View className="mt-16 mb-10">
+        <Text variant="display" className="text-5xl tracking-tightest">Welcome Back</Text>
         <View className="flex-row items-center gap-2 mt-4">
-          <View className="w-2 h-2 rounded-full bg-accent" />
-          <Text className="text-text-secondary text-lg font-inter">Secure access to your AI workspace.</Text>
+          {/* <View className="w-2 h-2 rounded-full bg-accent" /> */}
+          <Text className="text-text-secondary text-lg font-inter"></Text>
         </View>
       </View>
 

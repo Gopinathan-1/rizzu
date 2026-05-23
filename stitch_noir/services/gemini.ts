@@ -22,6 +22,14 @@ function isQuotaError(error: unknown) {
   return /429|quota|resource_exhausted|rate limit/i.test(message);
 }
 
+function isRetryableError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  return (
+    isQuotaError(error) ||
+    /not found|model not found|model .*not available|not available|invalid model|404|invalid_argument/i.test(message)
+  );
+}
+
 async function generateWithFallback(
   contents: Parameters<typeof ai.models.generateContent>[0]['contents']
 ): Promise<{ text?: string | null; candidates?: unknown[] }> {
@@ -35,7 +43,7 @@ async function generateWithFallback(
       });
     } catch (error) {
       lastError = error;
-      if (!isQuotaError(error)) {
+      if (!isRetryableError(error)) {
         throw error;
       }
     }

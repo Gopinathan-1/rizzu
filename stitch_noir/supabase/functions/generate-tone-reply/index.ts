@@ -38,6 +38,11 @@ function parseReplies(text: string): string[] {
     .slice(0, 3);
 }
 
+function compactToneContext(context: string) {
+  const compact = context.replace(/\s+/g, ' ').trim();
+  return compact.length > 4000 ? compact.slice(-4000) : compact;
+}
+
 declare const Deno: {
   serve: (handler: (request: Request) => Promise<Response> | Response) => void;
 };
@@ -65,8 +70,9 @@ Deno.serve(async (request) => {
     const body = (await request.json()) as GenerateReplyRequest;
     const tone = String(body.tone ?? '').trim();
     const context = String(body.context ?? '').trim();
+    const trimmedContext = compactToneContext(context);
 
-    if (!tone || !context) {
+    if (!tone || !trimmedContext) {
       console.log('[generate-tone-reply] Validation failed: missing tone or context');
       return withCors(new Response(JSON.stringify({ error: 'Missing tone or context' }), { status: 400 }));
     }
@@ -76,7 +82,7 @@ Deno.serve(async (request) => {
     const prompt = `${getTonePrompt(normalizeToneName(tone))}
 
   Context:
-  ${context}
+  ${trimmedContext}
 
   Keep the replies short, simple, and like a real person texting back.
   Return exactly 3 replies, one per line, with no labels, bullets, or extra commentary.`;

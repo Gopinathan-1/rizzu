@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, TextInput, Pressable, ActivityIndicator, Alert, ScrollView, Image, Modal, Platform } from 'react-native';
+import { View, TextInput, Pressable, ActivityIndicator, Alert, ScrollView, Image, Modal, Platform, TouchableWithoutFeedback } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
 import { useRouter } from 'expo-router';
@@ -115,7 +115,7 @@ Return only valid JSON:
       <View className="flex-row items-center py-4 h-16">
         <View className="flex-1" />
         <View className="absolute inset-x-0 items-center pointer-events-none">
-          <Text variant="headline" className="text-2xl tracking-tighter">Stitch Noir</Text>
+          <Text variant="headline" className="text-2xl tracking-tighter">RIZZ</Text>
         </View>
         <View className="flex-row items-center gap-4">
           <Pressable className="p-2 rounded-lg active:bg-surface-high" onPress={() => router.push('/settings')}>
@@ -138,7 +138,7 @@ Return only valid JSON:
             {results.length === 0 ? (
               <EmptyState
                 title="Ready to write your bio"
-                message="Drop in a vibe, a screenshot, or a few words and Stitch Noir will shape it into something sharper."
+                message="Drop in a vibe, a screenshot, or a few words and RIZZ will shape it into something sharper."
                 icon={Sparkles}
                 action={<Button label="Generate Bio" icon={ArrowUp} onPress={() => void handleGenerate()} className="rounded-full" />}
               />
@@ -168,7 +168,7 @@ Return only valid JSON:
           </ScrollView>
 
           {/* Composer pinned to bottom */}
-          <View className="border-t border-outline-variant bg-background py-4 -mx-margin-mobile">
+          <View className="bg-background py-4 -mx-margin-mobile">
             <ModernComposer
               value={bioInput}
               onChangeText={setBioInput}
@@ -188,13 +188,13 @@ Return only valid JSON:
               }
               toolbarCenter={
                 <Pressable
-                  onPress={() => setIsTonePickerOpen(true)}
-                  className="flex-row items-center gap-2 rounded-full border border-border bg-accent/10 px-3 py-2 active:bg-white/10"
-                >
-                  <Sparkles size={16} color={isLight ? '#1A1A1A' : '#FDFBD4'} />
-                  <Text size="sm" className="text-accent">{selectedTone}</Text>
-                  <ChevronDown size={14} color={isLight ? CHOCOLATE_TRUFFLE_LIGHT.textPrimary : CHOCOLATE_TRUFFLE_DARK.textPrimary} />
-                </Pressable>
+                onPress={() => setIsTonePickerOpen(true)}
+                className="flex-row items-center gap-2 rounded-full border border-border bg-bg-surface/10 px-3 py-2 active:bg-white/10"
+              >
+                <Sparkles size={16} color={isLight ? 'rgba(113,54,0,0.6)' : '#FDFBD4'} />
+                <Text size="sm" className="text-on-surface">{selectedTone}</Text>
+                <ChevronDown size={14} color={isLight ? 'rgba(113,54,0,0.6)' : '#FDFBD4'} />
+              </Pressable>
               }
               toolbarRight={
                 <Pressable
@@ -223,33 +223,46 @@ Return only valid JSON:
           </View>
 
                 <Modal visible={isTonePickerOpen} transparent animationType="fade" onRequestClose={() => setIsTonePickerOpen(false)}>
-                  <Pressable className="flex-1 justify-end bg-background/55 px-4 pb-6" onPress={() => setIsTonePickerOpen(false)}>
-                    <Pressable className="overflow-hidden rounded-[28px] border border-border bg-surface p-4" onPress={(event) => event.stopPropagation()}>
+                  <TouchableWithoutFeedback onPress={() => setIsTonePickerOpen(false)}>
+                    <View className="flex-1 justify-end bg-background/55 px-4 pb-6">
+                      <View className="overflow-hidden rounded-[28px] border border-border bg-surface p-4" onStartShouldSetResponder={() => true}>
                       <Text weight="bold" size="xl">Choose tone</Text>
                       <Text className="mt-1 text-on-surface-variant">Replies will follow the selected prompt style.</Text>
-                      <View className="mt-4 gap-2">
-                                {toneOptions.map((tone) => {
-                                  const isSelected = tone === normalizeToneName(activeTone ?? 'Witty');
-                                  return (
-                                    <Pressable
-                                      key={tone}
-                                      onPress={() => {
-                                        setActiveTone(tone);
-                                        setIsTonePickerOpen(false);
-                                      }}
-                                      style={{
-                                        borderColor: isSelected ? CHOCOLATE_TRUFFLE_LIGHT.accent : undefined,
-                                        backgroundColor: isSelected ? CHOCOLATE_TRUFFLE_LIGHT.accent : undefined,
-                                      }}
-                                    >
-                                      <Text weight="semibold" className={isSelected ? 'text-background' : 'text-text-secondary'} style={isSelected ? { color: CHOCOLATE_TRUFFLE_LIGHT.bgPrimary } : undefined}>{tone}</Text>
-                                      {isSelected ? <Text size="xs" style={{ color: CHOCOLATE_TRUFFLE_LIGHT.bgPrimary }}>Selected</Text> : null}
-                                    </Pressable>
-                                  );
-                                })}
+                      <View className="mt-4">
+                        <ScrollView
+                          horizontal
+                          showsHorizontalScrollIndicator={false}
+                          className="-mx-5 px-5"
+                          contentContainerStyle={{ paddingRight: 40 }}
+                        >
+                          <View className="flex-row gap-2">
+                            {toneOptions.map((tone) => {
+                              const isSelected = tone === normalizeToneName(activeTone ?? 'Witty');
+                              return (
+                                <Pressable
+                                  key={tone}
+                                  onPress={() => {
+                                    setActiveTone(tone);
+                                    setIsTonePickerOpen(false);
+                                  }}
+                                  style={{
+                                    paddingVertical: 8,
+                                    paddingHorizontal: 12,
+                                    borderRadius: 999,
+                                    borderColor: isSelected ? CHOCOLATE_TRUFFLE_LIGHT.accent : undefined,
+                                    backgroundColor: isSelected ? CHOCOLATE_TRUFFLE_LIGHT.accent : undefined,
+                                  }}
+                                >
+                                  <Text weight="bold" size="sm" style={isSelected ? { color: CHOCOLATE_TRUFFLE_LIGHT.bgPrimary } : undefined}>{tone}</Text>
+                                </Pressable>
+                              );
+                            })}
+                          </View>
+                        </ScrollView>
                       </View>
-                    </Pressable>
-                  </Pressable>
+                      </View>
+                    </View>
+                  </TouchableWithoutFeedback>
                 </Modal>
                 
         </View>

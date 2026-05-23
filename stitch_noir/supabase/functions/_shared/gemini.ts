@@ -13,6 +13,15 @@ function isQuotaError(error: unknown) {
   return /429|quota|resource_exhausted|rate limit/i.test(message);
 }
 
+function isRetryableError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  // Retry on quota errors or when a model is missing/unavailable so we can fallback
+  return (
+    isQuotaError(error) ||
+    /not found|model not found|model .*not available|not available|invalid model|404|invalid_argument/i.test(message)
+  );
+}
+
 function extractText(response: { text?: string | null }) {
   if (!response.text) {
     throw new Error('Empty Gemini response');
@@ -43,7 +52,7 @@ export async function generateText(prompt: string) {
       return extractText(response);
     } catch (error) {
       lastError = error;
-      if (!isQuotaError(error)) {
+      if (!isRetryableError(error)) {
         throw error;
       }
     }
@@ -74,7 +83,7 @@ export async function* streamText(prompt: string) {
       return;
     } catch (error) {
       lastError = error;
-      if (!isQuotaError(error)) {
+      if (!isRetryableError(error)) {
         throw error;
       }
     }
@@ -137,7 +146,7 @@ export async function extractTextFromBinary(data: Uint8Array, mimeType: string, 
       return extractText(response).trim();
     } catch (error) {
       lastError = error;
-      if (!isQuotaError(error)) {
+      if (!isRetryableError(error)) {
         throw error;
       }
     }
@@ -176,7 +185,7 @@ export async function generateVisionText(prompt: string, base64: string, mimeTyp
       return extractText(response);
     } catch (error) {
       lastError = error;
-      if (!isQuotaError(error)) {
+      if (!isRetryableError(error)) {
         throw error;
       }
     }
