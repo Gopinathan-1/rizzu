@@ -6,10 +6,13 @@ import { Card } from '@/components/ui/Card';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { useRouter } from 'expo-router';
 import { Mail, Lock, ArrowRight, Check } from 'lucide-react-native';
+import { useAppStore } from '@/store/useAppStore';
 import { authService } from '@/services/auth';
 
 export default function LoginScreen() {
   const router = useRouter();
+  const themeMode = useAppStore((state) => state.themeMode);
+  const isLight = themeMode === 'light';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -40,20 +43,20 @@ export default function LoginScreen() {
       <View className="mt-16 mb-12">
         <Text variant="display" className="text-6xl tracking-tightest">Welcome{"\n"}Back.</Text>
         <View className="flex-row items-center gap-2 mt-4">
-          <View className="w-2 h-2 rounded-full bg-primary" />
-          <Text className="text-on-surface-variant text-lg font-inter">Secure access to your AI workspace.</Text>
+          <View className="w-2 h-2 rounded-full bg-accent" />
+          <Text className="text-text-secondary text-lg font-inter">Secure access to your AI workspace.</Text>
         </View>
       </View>
 
       <View className="gap-6">
         <View>
-          <Text variant="label" className="mb-3 text-on-surface-variant">Email Address</Text>
-          <Card className="bg-surface-low border border-outline-variant p-5 flex-row items-center rounded-2xl">
-            <Mail size={20} color="#958da1" className="mr-3" />
+          <Text variant="label" className="mb-3 text-text-secondary">Email Address</Text>
+          <Card className="bg-surface border border-border p-5 flex-row items-center rounded-2xl">
+            <Mail size={20} color={isLight ? '#000000' : '#FFFFFF'} className="mr-3" />
             <TextInput 
               className="flex-1 pl-1 text-on-surface text-base font-inter"
               placeholder={focusedField === 'email' ? '' : 'name@example.com'}
-              placeholderTextColor="#4a4455"
+              placeholderTextColor={isLight ? '#000000' : '#FFFFFF'}
               autoCapitalize="none"
               keyboardType="email-address"
               value={email}
@@ -66,13 +69,13 @@ export default function LoginScreen() {
         </View>
 
         <View>
-          <Text variant="label" className="mb-3 text-on-surface-variant">Password</Text>
-          <Card className="bg-surface-low border border-outline-variant p-5 flex-row items-center rounded-2xl">
-            <Lock size={20} color="#958da1" className="mr-3" />
+          <Text variant="label" className="mb-3 text-text-secondary">Password</Text>
+          <Card className="bg-surface border border-border p-5 flex-row items-center rounded-2xl">
+            <Lock size={20} color={isLight ? '#000000' : '#FFFFFF'} className="mr-3" />
             <TextInput 
               className="flex-1 pl-1 text-on-surface text-base font-inter"
               placeholder={focusedField === 'password' ? '' : '••••••••'}
-              placeholderTextColor="#4a4455"
+              placeholderTextColor={isLight ? '#000000' : '#FFFFFF'}
               secureTextEntry={!showPassword}
               value={password}
               onChangeText={setPassword}
@@ -84,31 +87,31 @@ export default function LoginScreen() {
           <Pressable
             onPress={() => setShowPassword((current) => !current)}
             disabled={loading}
-            className="mt-3 flex-row items-center gap-3 self-start rounded-full border border-outline-variant bg-surface-low px-3 py-2"
+            className="mt-3 flex-row items-center gap-3 self-start rounded-full border border-border bg-bg-elevated px-3 py-2"
           >
-            <View className={`h-4 w-4 items-center justify-center rounded-[4px] border ${showPassword ? 'border-white bg-primary' : 'border-outline-variant bg-transparent'}`}>
-              {showPassword ? <Check size={14} color="#ffffff" strokeWidth={3} /> : null}
+            <View className={`h-4 w-4 items-center justify-center rounded-[4px] border ${showPassword ? 'border-accent bg-accent' : 'border-border bg-transparent'}`}>
+              {showPassword ? <Check size={14} color={isLight ? '#000000' : '#FFFFFF'} strokeWidth={3} /> : null}
             </View>
-            <Text size="sm" className="text-on-surface-variant">Show Password</Text>
+            <Text size="sm" className="text-text-secondary">Show Password</Text>
           </Pressable>
           <Pressable className="mt-4 items-end" disabled={loading}>
-            <Text className="text-primary text-xs font-bold tracking-wider">FORGOT PASSWORD?</Text>
+            <Text className="text-accent text-xs font-bold tracking-wider">FORGOT PASSWORD?</Text>
           </Pressable>
         </View>
 
         <Pressable 
-          className="bg-primary-container h-16 rounded-2xl flex-row items-center justify-center mt-4 active:brightness-110 shadow-lg"
+          className="bg-accent h-16 rounded-2xl flex-row items-center justify-center mt-4 active:brightness-110 shadow-lg"
           onPress={handleLogin}
           disabled={loading}
         >
-          <Text weight="bold" size="lg" className="text-on-primary-container mr-2">{loading ? 'Logging In...' : 'Log In'}</Text>
-          <ArrowRight size={20} color="#dac5ff" />
+          <Text weight="bold" size="lg" className="text-background mr-2">{loading ? 'Logging In...' : 'Log In'}</Text>
+          <ArrowRight size={20} color={isLight ? '#000000' : '#FFFFFF'} />
         </Pressable>
       </View>
 
       <View className="mt-16 mb-8 items-center">
         <Pressable onPress={() => router.push('/(auth)/signup')} disabled={loading}>
-          <Text className="text-on-surface-variant font-inter">Don't have an account? <Text className="text-primary font-inter-bold">Sign Up</Text></Text>
+          <Text className="text-text-secondary font-inter">Don't have an account? <Text className="text-accent font-inter-bold">Sign Up</Text></Text>
         </Pressable>
       </View>
     </ScreenContainer>

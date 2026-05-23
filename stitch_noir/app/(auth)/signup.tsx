@@ -6,10 +6,13 @@ import { Card } from '@/components/ui/Card';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { useRouter } from 'expo-router';
 import { User, Mail, Lock, ArrowRight, Check } from 'lucide-react-native';
+import { useAppStore } from '@/store/useAppStore';
 import { authService } from '@/services/auth';
 
 export default function SignupScreen() {
   const router = useRouter();
+  const themeMode = useAppStore((state) => state.themeMode);
+  const isLight = themeMode === 'light';
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -45,20 +48,20 @@ export default function SignupScreen() {
     <ScreenContainer>
       <View className="mt-10 mb-8">
         <Text variant="display" className="text-5xl tracking-tight">Create{"\n"}Account.</Text>
-        <Text className="mt-3 max-w-[320px] text-base leading-6 text-outline">
+        <Text className="mt-3 max-w-[320px] text-base leading-6 text-text-secondary">
           Join the elite world of AI social intelligence.
         </Text>
       </View>
 
       <View className="gap-5">
         <View>
-          <Text variant="label" className="mb-3 text-on-surface-variant">Full Name</Text>
-          <Card className="flex-row items-center rounded-2xl border border-outline-variant bg-surface-low px-4 py-4">
-            <User size={20} color="#958da1" className="mr-3" />
+          <Text variant="label" className="mb-3 text-text-secondary">Full Name</Text>
+          <Card className="flex-row items-center rounded-2xl border border-border bg-surface px-4 py-4">
+            <User size={20} color={isLight ? '#000000' : '#FFFFFF'} className="mr-3" />
             <TextInput 
               className="flex-1 pl-1 text-on-surface text-base"
               placeholder={focusedField === 'fullName' ? '' : 'Julian Stark'}
-              placeholderTextColor="#4a4455"
+              placeholderTextColor={isLight ? '#000000' : '#FFFFFF'}
               value={fullName}
               onChangeText={setFullName}
               editable={!loading}
@@ -69,13 +72,13 @@ export default function SignupScreen() {
         </View>
 
         <View>
-          <Text variant="label" className="mb-3 text-on-surface-variant">Email Address</Text>
-          <Card className="flex-row items-center rounded-2xl border border-outline-variant bg-surface-low px-4 py-4">
-            <Mail size={20} color="#958da1" className="mr-3" />
+          <Text variant="label" className="mb-3 text-text-secondary">Email Address</Text>
+          <Card className="flex-row items-center rounded-2xl border border-border bg-surface px-4 py-4">
+            <Mail size={20} color={isLight ? '#000000' : '#FFFFFF'} className="mr-3" />
             <TextInput 
               className="flex-1 pl-1 text-on-surface text-base"
               placeholder={focusedField === 'email' ? '' : 'name@example.com'}
-              placeholderTextColor="#4a4455"
+              placeholderTextColor={isLight ? '#000000' : '#FFFFFF'}
               autoCapitalize="none"
               value={email}
               onChangeText={setEmail}
@@ -88,13 +91,13 @@ export default function SignupScreen() {
         </View>
 
         <View>
-          <Text variant="label" className="mb-3 text-on-surface-variant">Password</Text>
-          <Card className="flex-row items-center rounded-2xl border border-outline-variant bg-surface-low px-4 py-4">
-            <Lock size={20} color="#958da1" className="mr-3" />
+          <Text variant="label" className="mb-3 text-text-secondary">Password</Text>
+          <Card className="flex-row items-center rounded-2xl border border-border bg-surface px-4 py-4">
+            <Lock size={20} color={isLight ? '#000000' : '#FFFFFF'} className="mr-3" />
             <TextInput 
               className="flex-1 pl-1 text-on-surface text-base"
               placeholder={focusedField === 'password' ? '' : 'Minimum 8 characters'}
-              placeholderTextColor="#4a4455"
+              placeholderTextColor={isLight ? '#000000' : '#FFFFFF'}
               secureTextEntry={!showPassword}
               value={password}
               onChangeText={setPassword}
@@ -106,12 +109,12 @@ export default function SignupScreen() {
           <Pressable
             onPress={() => setShowPassword((current) => !current)}
             disabled={loading}
-            className="mt-3 flex-row items-center gap-3 self-start rounded-full border border-white/10 bg-white/5 px-3 py-2"
+            className="mt-3 flex-row items-center gap-3 self-start rounded-full border border-border bg-bg-elevated px-3 py-2"
           >
-            <View className={`h-4 w-4 items-center justify-center rounded-[4px] border ${showPassword ? 'border-white bg-primary' : 'border-white/80 bg-transparent'}`}>
-              {showPassword ? <Check size={14} color="#ffffff" strokeWidth={3} /> : null}
+            <View className={`h-4 w-4 items-center justify-center rounded-[4px] border ${showPassword ? 'border-accent bg-accent' : 'border-border bg-transparent'}`}>
+              {showPassword ? <Check size={14} color={isLight ? '#000000' : '#FFFFFF'} strokeWidth={3} /> : null}
             </View>
-            <Text size="sm" className="text-on-surface-variant">Show Password</Text>
+            <Text size="sm" className="text-text-secondary">Show Password</Text>
           </Pressable>
         </View>
 
@@ -127,7 +130,7 @@ export default function SignupScreen() {
 
       <View className="mt-10 items-center pb-10">
         <Pressable onPress={() => router.push('/(auth)/login')} disabled={loading}>
-          <Text className="text-outline font-bold">Already have an account? <Text className="text-primary">Log In</Text></Text>
+          <Text className="text-text-secondary font-bold">Already have an account? <Text className="text-accent">Log In</Text></Text>
         </Pressable>
       </View>
     </ScreenContainer>

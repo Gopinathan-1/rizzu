@@ -36,21 +36,20 @@ import {
   fetchWorkspaceMessages,
   fetchWorkspaceUploads,
   createWorkspaceChat,
-  createWorkspaceMessage,
-  streamWorkspaceReply,
-  generateChatTitle,
   renameWorkspaceChat,
   deleteWorkspaceChat,
   reindexWorkspaceUpload,
   removeWorkspaceUpload,
   updateChatTitleIfNeeded,
   uploadWorkspaceFile,
+  loadCachedChats,
   type WorkspaceChat,
   type WorkspaceMessage,
   type WorkspaceUpload,
 } from '@/services/chatWorkspace';
+import { generateText } from '@/services/gemini';
 import { getUploadContentKind, isSupportedUpload, type UploadSource } from '@/lib/file-processing';
-import { TONE_OPTIONS, normalizeToneName } from '@/lib/tonePrompts';
+import { TONE_OPTIONS, getToneConversationPrompt, normalizeToneName, getToneHint } from '@/lib/tonePrompts';
 import { useAppStore } from '@/store/useAppStore';
 
 const MESSAGE_PAGE_SIZE = 30;
@@ -110,6 +109,8 @@ export default function TonesScreen() {
   const listRef = useRef<FlatList<WorkspaceMessage>>(null);
   const { width } = useWindowDimensions();
   const isCompactMobile = width < 420;
+  const themeMode = useAppStore((state) => state.themeMode);
+  const isLight = themeMode === 'light';
   const activeTone = useAppStore((state) => state.activeTone);
   const activeChatId = useAppStore((state) => state.activeChatId);
   const setActiveTone = useAppStore((state) => state.setActiveTone);
@@ -137,6 +138,8 @@ export default function TonesScreen() {
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [uploadLabel, setUploadLabel] = useState('');
   const [pendingUploads, setPendingUploads] = useState<PendingUpload[]>([]);
+  const messageCacheRef = useRef(new Map<string, WorkspaceMessage[]>());
+  const uploadCacheRef = useRef(new Map<string, WorkspaceUpload[]>());
 
   const selectedTone = normalizeToneName(activeTone);
   const hasDraftText = draft.trim().length > 0;
@@ -157,6 +160,8 @@ export default function TonesScreen() {
     () => chats.find((chat) => chat.id === selectedChatId) ?? null,
     [chats, selectedChatId]
   );
+
+  const showInitialLoading = loadingChats && chats.length === 0;
 
   const chatsByGroup = useMemo(() => groupChatsByRecency(chats), [chats]);
 
@@ -195,8 +200,11 @@ export default function TonesScreen() {
     }
   }, [searchText, selectedChatId]);
 
-  const refreshMessages = useCallback(async (chatId: string) => {
-    setLoadingMessages(true);
+  const refreshMessages = useCallback(async (chatId: string, options: { showLoading?: boolean } = {}) => {
+    const showLoading = options.showLoading ?? true;
+    if (showLoading) {
+      setLoadingMessages(true);
+    }
     setHasMoreMessages(true);
     try {
       const [messageResult, uploadResult] = await Promise.all([
@@ -208,24 +216,55 @@ export default function TonesScreen() {
         throw messageResult.error;
       }
 
-      setMessages((messageResult.data ?? []).slice().reverse());
-      setUploads(uploadResult.data ?? []);
+      const nextMessages = (messageResult.data ?? []).slice().reverse();
+      const nextUploads = uploadResult.data ?? [];
+      messageCacheRef.current.set(chatId, nextMessages);
+      uploadCacheRef.current.set(chatId, nextUploads);
+      setMessages(nextMessages);
+      setUploads(nextUploads);
       setHasMoreMessages((messageResult.data ?? []).length === MESSAGE_PAGE_SIZE);
     } catch (error) {
       Alert.alert('Conversation unavailable', error instanceof Error ? error.message : 'Could not load messages.');
     } finally {
-      setLoadingMessages(false);
+      if (showLoading) {
+        setLoadingMessages(false);
+      }
       requestAnimationFrame(() => listRef.current?.scrollToEnd({ animated: false }));
     }
   }, []);
 
   useEffect(() => {
-    void refreshChats();
+    let mounted = true;
+    void (async () => {
+      const cached = await loadCachedChats();
+      if (mounted && cached && cached.length > 0) {
+        setChats(cached);
+        if (!selectedChatId) {
+          setSelectedChatId(cached[0].id);
+          setActiveChatId(cached[0].id);
+        }
+      }
+      void refreshChats();
+    })();
+
+    return () => {
+      mounted = false;
+    };
   }, [refreshChats]);
 
   useEffect(() => {
     if (selectedChatId) {
-      void refreshMessages(selectedChatId);
+      const cachedMessages = messageCacheRef.current.get(selectedChatId);
+      const cachedUploads = uploadCacheRef.current.get(selectedChatId);
+
+      if (cachedMessages) {
+        setMessages(cachedMessages);
+        setUploads(cachedUploads ?? []);
+        setHasMoreMessages(cachedMessages.length === MESSAGE_PAGE_SIZE);
+        void refreshMessages(selectedChatId, { showLoading: false });
+      } else {
+        void refreshMessages(selectedChatId);
+      }
     }
   }, [selectedChatId, refreshMessages]);
 
@@ -403,12 +442,15 @@ export default function TonesScreen() {
         throw error;
       }
 
+      // update local list and refresh from server to ensure ordering and timestamps
       setChats((current) => current.map((chat) => (chat.id === renameChat.id ? { ...chat, title: nextTitle } : chat)));
       setRenameChat(null);
+      setRenameValue('');
+      void refreshChats();
     } catch (error) {
       Alert.alert('Rename failed', error instanceof Error ? error.message : 'Could not rename chat.');
     }
-  }, [renameChat, renameValue]);
+  }, [renameChat, renameValue, refreshChats]);
 
   const confirmDeleteChat = useCallback((chat: WorkspaceChat) => {
     Alert.alert('Delete chat?', `Remove ${chat.title} and all of its messages?`, [
@@ -423,7 +465,8 @@ export default function TonesScreen() {
               throw error;
             }
 
-            setChats((current) => current.filter((item) => item.id !== chat.id));
+            // refresh server-side list to reflect cascades and ordering
+            void refreshChats();
             setUploads((current) => current.filter((upload) => upload.chat_id !== chat.id));
             if (selectedChatId === chat.id) {
               setSelectedChatId(null);
@@ -437,7 +480,7 @@ export default function TonesScreen() {
         },
       },
     ]);
-  }, [selectedChatId]);
+  }, [selectedChatId, refreshChats]);
 
   const handleLoadOlderMessages = useCallback(async () => {
     if (!selectedChatId || !hasMoreMessages || loadingOlder || messages.length === 0) {
@@ -476,84 +519,62 @@ export default function TonesScreen() {
     try {
       const chatId = await ensureChat();
       setDraft('');
-      setComposerNotice('Thinking...');
+      setComposerNotice('Typing...');
       setIsStreaming(true);
       setStreamingText('');
 
-      const userMessage = await createWorkspaceMessage(chatId, 'user', trimmed);
-      if (userMessage.data) {
-        setMessages((current) => [...current, userMessage.data as WorkspaceMessage]);
-      }
+      setMessages((current) => [
+        ...current,
+        {
+          id: `local-user-${Date.now()}`,
+          chat_id: chatId,
+          user_id: user?.id ?? 'local',
+          role: 'user',
+          content: trimmed,
+          created_at: new Date().toISOString(),
+        },
+      ]);
 
-      const streamResponse = await streamWorkspaceReply({
-        chatId,
-        message: trimmed,
-        tone: selectedTone,
-      });
+      // build compact context from last messages to keep replies relevant
+      const recent = messages
+        .slice(-6)
+        .map((m) => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`)
+        .join('\n');
 
-      // Check response status
-      if (!streamResponse.ok) {
-        const errorText = await streamResponse.text();
-        try {
-          const errorJson = JSON.parse(errorText);
-          throw new Error(errorJson.error || `Server error: ${streamResponse.status}`);
-        } catch {
-          throw new Error(errorText || `Server error: ${streamResponse.status}`);
-        }
-      }
+      const prompt = [
+        getToneConversationPrompt(selectedTone),
+        'Respond directly to the latest user message and use the recent conversation for context.',
+        'Keep it natural and short (one short text message).',
+        'Do not introduce unrelated topics or explain yourself.',
+        recent ? `Conversation context:\n${recent}` : '',
+        `User message: ${trimmed}`,
+        'Return only the reply text.',
+      ]
+        .filter(Boolean)
+        .join('\n\n');
 
-      if (!streamResponse.body) {
-        const text = await streamResponse.text();
-        setStreamingText(text);
-      } else {
-        const reader = streamResponse.body.getReader();
-        const decoder = new TextDecoder();
-        let responseText = '';
-        const timeoutMs = 60000; // 60 second timeout
-        const startTime = Date.now();
+      const assistantText = (await generateText(prompt)).trim();
+      const replyText = assistantText || 'Got you.';
 
-        try {
-          while (true) {
-            // Check for timeout
-            if (Date.now() - startTime > timeoutMs) {
-              throw new Error('Stream response took too long (> 60 seconds)');
-            }
-
-            const { done, value } = await reader.read();
-            if (done) {
-              break;
-            }
-
-            if (value) {
-              responseText += decoder.decode(value, { stream: true });
-              setStreamingText(responseText);
-            }
-          }
-
-          // Flush any remaining bytes
-          responseText += decoder.decode();
-          setStreamingText(responseText);
-        } catch (streamError) {
-          reader.cancel();
-          throw streamError;
-        }
-      }
+      setStreamingText(replyText);
+      setMessages((current) => [
+        ...current,
+        {
+          id: `local-assistant-${Date.now()}`,
+          chat_id: chatId,
+          user_id: user?.id ?? 'local',
+          role: 'assistant',
+          content: replyText,
+          created_at: new Date().toISOString(),
+        },
+      ]);
 
       setStreamingText('');
-      await refreshMessages(chatId);
       const latest = chats.find((chat) => chat.id === chatId) ?? selectedChat;
-      const titleCandidate = latest?.title ?? 'New chat';
       if (!latest || latest.title === 'New chat') {
-        try {
-          const generatedTitle = await generateChatTitle(trimmed);
-          const parsedTitle = generatedTitle.match(/"title"\s*:\s*"([^"]+)"/)?.[1] ?? generatedTitle.replace(/[{}]/g, '').replace(/title\s*:\s*/i, '').trim();
-          if (parsedTitle) {
-            await updateChatTitleIfNeeded(chatId, normalizeTitle(parsedTitle));
-            void refreshChats();
-          }
-        } catch {
-          void titleCandidate;
-        }
+        const nextTitle = normalizeTitle(trimmed);
+        await updateChatTitleIfNeeded(chatId, nextTitle);
+        void refreshChats();
       }
     } catch (error) {
       Alert.alert('Message failed', error instanceof Error ? error.message : 'Could not send the message.');
@@ -561,7 +582,7 @@ export default function TonesScreen() {
       setIsStreaming(false);
       setComposerNotice('');
     }
-  }, [chats, draft, ensureChat, refreshChats, refreshMessages, selectedTone, selectedChat]);
+  }, [chats, draft, ensureChat, refreshChats, selectedTone, selectedChat, user?.id]);
 
   const handleComposerKeyPress = useCallback((event: any) => {
     if (event.nativeEvent?.key === 'Enter') {
@@ -587,26 +608,31 @@ export default function TonesScreen() {
   return (
     <ScreenContainer scrollable={false} className="bg-background px-0">
       <View className="relative flex-1 bg-background" {...webDropProps}>
-        <View className="relative flex-row items-center justify-between border-b border-outline-variant px-4 py-3">
+        <View className="relative flex-row items-center justify-between border-b border-border px-4 py-3">
           <View className="flex-1 flex-row items-center">
             {isCompactMobile ? (
               <Pressable
-                  onPress={() => router.push('/memory' as never)}
+                onPress={() => router.push('/memory' as never)}
                 hitSlop={12}
-                className="h-11 w-11 items-center justify-center rounded-full border border-outline-variant bg-background/30 active:bg-white/10"
+                className="h-11 w-11 items-center justify-center rounded-full border border-border bg-bg-elevated/30 active:bg-bg-elevated"
               >
-                <Menu size={18} color="#d3bbff" />
+                <Menu size={18} color={isLight ? '#000000' : '#FFFFFF'} />
               </Pressable>
             ) : null}
           </View>
           <View className="absolute inset-x-0 items-center pointer-events-none">
-            <Text variant="headline" className="text-2xl tracking-tighter">
-              Stitch Noir
-            </Text>
+            <View className="flex-row items-center">
+              <Text variant="headline" className="text-2xl tracking-tighter text-text-primary">
+                Stitch 
+              </Text>
+              <Text variant="headline" className="text-2xl tracking-tighter text-accent">
+                Noir
+              </Text>
+            </View>
           </View>
           <View className="flex-row items-center gap-3">
-            <Pressable className="rounded-full border border-outline-variant px-3 py-2 active:bg-white/10" onPress={() => router.push('/settings')}>
-              <Settings size={16} color="#d3bbff" />
+            <Pressable className="p-2 rounded-lg active:bg-surface-high" onPress={() => router.push('/settings')}>
+              <Settings size={22} color={isLight ? '#000000' : '#FFFFFF'} />
             </Pressable>
           </View>
         </View>
@@ -629,7 +655,11 @@ export default function TonesScreen() {
         />
 
         <View className="flex-1 bg-background">
-            {selectedChat ? (
+              {showInitialLoading ? (
+                <View className="flex-1 items-center justify-center px-8 py-12">
+                  <ActivityIndicator color={isLight ? '#000000' : '#FFFFFF'} size="large" />
+                </View>
+              ) : selectedChat ? (
               <KeyboardAvoidingView
                 className="flex-1"
                 behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -642,12 +672,9 @@ export default function TonesScreen() {
                         {selectedChat.title}
                       </Text>
                     </View>
-                    <Pressable
-                      onPress={() => void handleNewChat()}
-                      className="rounded-full border border-outline-variant px-3 py-2 active:bg-white/10"
-                    >
+                    <Pressable onPress={() => void handleNewChat()} className="rounded-full border border-border bg-bg-elevated px-3 py-2 active:bg-white/10">
                       <View className="flex-row items-center gap-2">
-                        <Plus size={14} color="#d3bbff" />
+                        <Plus size={14} color={isLight ? '#000000' : '#FFFFFF'} />
                         <Text size="sm">New chat</Text>
                       </View>
                     </Pressable>
@@ -669,8 +696,8 @@ export default function TonesScreen() {
                     keyboardShouldPersistTaps="handled"
                     ListHeaderComponent={
                       loadingMessages ? (
-                        <View className="items-center py-8">
-                          <ActivityIndicator color="#d3bbff" />
+                          <View className="items-center py-8">
+                          <ActivityIndicator color={isLight ? '#000000' : '#FFFFFF'} />
                         </View>
                       ) : null
                     }
@@ -680,24 +707,24 @@ export default function TonesScreen() {
                           <View className="items-center py-4">
 
                     {uploads.length > 0 ? (
-                      <View className="mt-4 rounded-[28px] border border-outline-variant bg-surface-container/60 p-4">
+                      <View className="mt-4 rounded-[28px] border border-border bg-bg-elevated/60 p-4">
                         <View className="mb-3 flex-row items-center justify-between">
-                          <Text weight="bold" size="sm" className="text-on-surface-variant uppercase tracking-widest">
+                          <Text weight="bold" size="sm" className="text-text-secondary uppercase tracking-widest">
                             This chat's uploads
                           </Text>
-                          <Pressable onPress={handlePickUpload} className="rounded-full border border-outline-variant px-3 py-1.5 active:bg-white/10">
+                          <Pressable onPress={handlePickUpload} className="rounded-full border border-border px-3 py-1.5 active:bg-white/10">
                             <Text size="xs">Add file</Text>
                           </Pressable>
                         </View>
                         <View className="gap-2">
                               {pendingUploads.map((upload) => (
-                                <View key={upload.id} className="rounded-2xl border border-dashed border-primary/40 bg-primary/5 p-3">
+                                <View key={upload.id} className="rounded-2xl border border-dashed border-border bg-accent/5 p-3">
                                   <View className="flex-row items-center justify-between gap-3">
                                     <View className="flex-1">
                                       <Text weight="semibold" numberOfLines={1}>
                                         {upload.filename}
                                       </Text>
-                                      <Text size="xs" className="mt-1 text-on-surface-variant">
+                                      <Text size="xs" className="mt-1 text-text-secondary">
                                         {upload.status === 'uploading' ? 'Uploading...' : 'Processing...'}
                                       </Text>
                                     </View>
@@ -708,13 +735,13 @@ export default function TonesScreen() {
                                 </View>
                               ))}
                           {uploads.map((upload) => (
-                            <View key={upload.id} className="rounded-2xl border border-outline-variant bg-background p-3">
+                            <View key={upload.id} className="rounded-2xl border border-border bg-bg-elevated p-3">
                               <View className="flex-row items-start justify-between gap-3">
                                 <View className="flex-1">
                                   <Text weight="semibold" numberOfLines={1}>
                                     {upload.filename}
                                   </Text>
-                                  <Text size="xs" className="mt-1 text-on-surface-variant">
+                                  <Text size="xs" className="mt-1 text-text-secondary">
                                     {upload.file_type}
                                   </Text>
                                 </View>
@@ -731,7 +758,7 @@ export default function TonesScreen() {
                                     }}
                                     className="rounded-full p-2 active:bg-white/10"
                                   >
-                                    <Search size={14} color="#d3bbff" />
+                                    <Search size={14} color={isLight ? '#000000' : '#FFFFFF'} />
                                   </Pressable>
                                   <Pressable
                                     onPress={async () => {
@@ -759,11 +786,11 @@ export default function TonesScreen() {
                         </View>
                       </View>
                     ) : null}
-                              <ActivityIndicator color="#d3bbff" size="small" />
+                              <ActivityIndicator color={isLight ? '#000000' : '#FFFFFF'} size="small" />
                             </View>
                           ) : null}
                         {isStreaming ? (
-                          <ChatMessageBubble role="assistant" content={streamingText || 'Thinking...'} streaming />
+                          <ChatMessageBubble role="assistant" content={streamingText || 'Typing...'} streaming />
                         ) : null}
                       </>
                     }
@@ -773,20 +800,20 @@ export default function TonesScreen() {
                   />
                 </View>
 
-                <View className="border-t border-outline-variant bg-background py-4 -mx-margin-mobile">
+                <View className="border-t border-border bg-bg-surface py-4 -mx-margin-mobile">
                   {uploadProgress !== null ? (
-                    <View className="mb-3 rounded-2xl border border-outline-variant bg-surface-container-high px-4 py-3">
+                    <View className="mb-3 rounded-2xl border border-border bg-bg-elevated px-4 py-3">
                       <View className="mb-2 flex-row items-center justify-between gap-3">
                         <Text size="sm" weight="semibold">
                           {uploadLabel || 'Uploading'}
                         </Text>
-                        <Text size="xs" className="text-on-surface-variant">
+                        <Text size="xs" className="text-text-secondary">
                           {Math.round(uploadProgress)}%
                         </Text>
                       </View>
-                      <View className="h-2 overflow-hidden rounded-full bg-white/10">
+                      <View className="h-2 overflow-hidden rounded-full bg-bg-elevated">
                         <View
-                          className="h-full rounded-full bg-primary"
+                          className="h-full rounded-full bg-accent"
                           style={{ width: `${Math.max(6, Math.min(100, uploadProgress))}%` }}
                         />
                       </View>
@@ -805,37 +832,42 @@ export default function TonesScreen() {
                     toolbarLeft={
                       <Pressable
                         onPress={handlePickUpload}
-                        className="h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-background/40 active:bg-white/10"
+                        className="h-11 w-11 items-center justify-center rounded-full border border-border bg-bg-surface active:bg-bg-elevated"
                       >
-                        <Paperclip size={22} color="#d3bbff" />
+                        <Paperclip size={20} color={isLight ? '#000000' : '#FFFFFF'} />
                       </Pressable>
                     }
                     toolbarCenter={
                       <Pressable
                         onPress={() => setIsTonePickerOpen(true)}
-                        className="flex-row items-center gap-2 rounded-full border border-white/10 bg-background/30 px-3 py-2 active:bg-white/10"
+                        className="flex-row items-center gap-2 rounded-full border border-border bg-bg-surface/10 px-3 py-2 active:bg-white/10"
                       >
-                        <Sparkles size={16} color="#d3bbff" />
+                        <Sparkles size={16} color={isLight ? 'rgba(0,0,0,0.4)' : '#FFFFFF'} />
                         <Text size="sm" className="text-on-surface">{selectedTone}</Text>
-                        <ChevronDown size={14} color="#958da1" />
+                        <ChevronDown size={14} color={isLight ? 'rgba(0,0,0,0.4)' : '#FFFFFF'} />
                       </Pressable>
                     }
                     toolbarRight={
                       <Pressable
                         onPress={handleSendMessage}
                         disabled={isStreaming || loadingChats || isUploading}
-                        className={`h-12 w-12 items-center justify-center rounded-full ${
-                          isStreaming || loadingChats || isUploading
-                            ? 'bg-white/5'
+                        style={{
+                          height: 48,
+                          width: 48,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          borderRadius: 999,
+                          backgroundColor: isStreaming || loadingChats || isUploading
+                            ? isLight ? 'rgba(17,17,17,0.08)' : 'rgba(243,243,243,0.12)'
                             : hasDraftText
-                              ? 'bg-primary'
-                              : 'bg-white/10'
-                        }`}
+                              ? isLight ? '#111111' : '#F3F3F3'
+                              : isLight ? 'rgba(17,17,17,0.08)' : 'rgba(243,243,243,0.12)'
+                        }}
                       >
                         {isStreaming ? (
-                          <ActivityIndicator color="#f4effe" />
+                          <ActivityIndicator color={isLight ? '#111111' : '#111111'} />
                         ) : (
-                          <ArrowUp size={18} color={hasDraftText ? '#120f16' : '#d9d3e3'} />
+                          <ArrowUp size={18} color={hasDraftText ? (isLight ? '#FFFFFF' : '#111111') : (isLight ? '#6B7280' : '#9CA3AF')} />
                         )}
                       </Pressable>
                     }
@@ -844,28 +876,11 @@ export default function TonesScreen() {
               </KeyboardAvoidingView>
             ) : (
               <View className="flex-1 items-center justify-center px-8 py-12">
-                <View className="max-w-[520px] items-center rounded-[36px] border border-outline-variant bg-surface-container/60 px-8 py-10 text-center">
-                  <View className="mb-6 h-18 w-18 items-center justify-center rounded-full bg-primary/10 px-5 py-5">
-                    <Sparkles size={32} color="#d3bbff" />
-                  </View>
-                  <Text variant="display" className="text-center text-4xl leading-tight">
-                    Start a conversation or upload files
-                  </Text>
-                  <Text className="mt-3 text-center text-on-surface-variant">
-                    Build a personal AI memory workspace that can search previous chats, uploaded files, and long-term memory.
-                  </Text>
-                  <View className="mt-8 flex-row flex-wrap items-center justify-center gap-3">
+                <View className="max-w-[520px] items-center px-8 py-10">
+                  <View className="mt-2 flex-row flex-wrap items-center justify-center gap-3">
                     <Button label="New Chat" icon={Plus} onPress={handleNewChat} />
                     <Button label="Upload Files" icon={UploadCloud} variant="secondary" onPress={handlePickUpload} />
                   </View>
-                  {loadingChats ? (
-                    <View className="mt-6 flex-row items-center gap-2">
-                      <ActivityIndicator color="#d3bbff" />
-                      <Text size="sm" className="text-on-surface-variant">
-                        Loading your workspace...
-                      </Text>
-                    </View>
-                  ) : null}
                 </View>
               </View>
             )}
@@ -873,7 +888,7 @@ export default function TonesScreen() {
 
         <Modal visible={Boolean(renameChat)} transparent animationType="fade" onRequestClose={() => setRenameChat(null)}>
           <Pressable className="flex-1 items-center justify-center bg-black/60 px-6" onPress={() => setRenameChat(null)}>
-            <Pressable className="w-full max-w-[420px] rounded-[28px] border border-outline-variant bg-surface-container-high p-6" onPress={(event) => event.stopPropagation()}>
+            <Pressable className="w-full max-w-[420px] rounded-[28px] border border-border bg-bg-elevated p-6" onPress={(event) => event.stopPropagation()}>
               <Text weight="bold" size="xl">
                 Rename chat
               </Text>
@@ -884,8 +899,8 @@ export default function TonesScreen() {
                 value={renameValue}
                 onChangeText={setRenameValue}
                 placeholder="Chat title"
-                placeholderTextColor="#958da1"
-                className="mt-4 rounded-2xl border border-outline-variant bg-background px-4 py-3 text-on-surface"
+                placeholderTextColor={isLight ? '#000000' : '#FFFFFF'}
+                className="mt-4 rounded-2xl border border-border bg-bg-surface px-4 py-3 text-text-primary"
               />
               <View className="mt-5 flex-row items-center justify-end gap-3">
                 <Button label="Cancel" variant="outline" onPress={() => setRenameChat(null)} />
@@ -897,17 +912,17 @@ export default function TonesScreen() {
 
         <Modal visible={isTonePickerOpen} transparent animationType="fade" onRequestClose={() => setIsTonePickerOpen(false)}>
           <Pressable className="flex-1 justify-end bg-black/55 px-4 pb-6" onPress={() => setIsTonePickerOpen(false)}>
-            <Pressable className="overflow-hidden rounded-[28px] border border-white/10 bg-surface-container/95 p-4" onPress={(event) => event.stopPropagation()}>
-              <Text weight="bold" size="xl">
-                Choose tone
-              </Text>
-              <Text className="mt-1 text-on-surface-variant">
-                Replies will follow the selected prompt style.
-              </Text>
-              <View className="mt-4 gap-2">
+            <Pressable className="overflow-hidden rounded-t-[20px] border border-border bg-bg-elevated p-4" onPress={(event) => event.stopPropagation()}>
+              <View className="mb-3 flex-row items-center justify-between">
+                <Text weight="bold" size="lg">Choose tone</Text>
+                <Pressable onPress={() => setIsTonePickerOpen(false)} className="p-2">
+                  <Text size="sm">Close</Text>
+                </Pressable>
+              </View>
+              <Text className="mb-3 text-on-surface-variant">Replies will follow the selected prompt style.</Text>
+              <View className="flex-row flex-wrap gap-3">
                 {TONE_OPTIONS.map((tone) => {
                   const isSelected = tone === selectedTone;
-
                   return (
                     <Pressable
                       key={tone}
@@ -915,12 +930,14 @@ export default function TonesScreen() {
                         setActiveTone(tone);
                         setIsTonePickerOpen(false);
                       }}
-                      className={`flex-row items-center justify-between rounded-2xl border px-4 py-3 ${
-                        isSelected ? 'border-primary bg-primary/15' : 'border-outline-variant bg-background'
-                      }`}
+                      className="min-w-[120px] max-w-[48%] rounded-2xl border p-3"
+                      style={{
+                        borderColor: isSelected ? (isLight ? '#111111' : '#F3F3F3') : undefined,
+                        backgroundColor: isSelected ? (isLight ? '#111111' : '#F3F3F3') : undefined,
+                      }}
                     >
-                      <Text weight="semibold">{tone}</Text>
-                      {isSelected ? <Text size="xs" className="text-primary">Selected</Text> : null}
+                      <Text weight="semibold" style={{ color: isSelected ? (isLight ? '#FFFFFF' : '#111111') : (isLight ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.9)') }}>{tone}</Text>
+                      <Text size="xs" style={{ color: isSelected ? (isLight ? 'rgba(255,255,255,0.9)' : '#111111') : (isLight ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.72)') }} numberOfLines={2}>{getToneHint(tone)}</Text>
                     </Pressable>
                   );
                 })}

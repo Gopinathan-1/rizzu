@@ -1,4 +1,6 @@
 import { supabase } from '@/services/auth';
+import { Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { generateText } from '@/services/gemini';
 import { extractJson } from '@/services/geminiHelpers';
 import { buildUploadPath, inferMimeType, isSupportedUpload, type UploadSource, uploadSourceToBase64 } from '@/lib/file-processing';
@@ -118,7 +120,37 @@ export async function fetchWorkspaceChats(searchText = '') {
   }
 
   const { data, error } = await query;
+  // persist a lightweight cache of recent chats for fast startup
+  try {
+    const toCache = (data as WorkspaceChat[] | null) ?? [];
+    if (Platform.OS === 'web') {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.setItem('stitch-noir-chats-cache', JSON.stringify(toCache));
+      }
+    } else {
+      await AsyncStorage.setItem('stitch-noir-chats-cache', JSON.stringify(toCache));
+    }
+  } catch (e) {
+    // ignore cache errors
+  }
   return { data: data as WorkspaceChat[] | null, error };
+}
+
+export async function loadCachedChats(): Promise<WorkspaceChat[] | null> {
+  try {
+    if (Platform.OS === 'web') {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const raw = window.localStorage.getItem('stitch-noir-chats-cache');
+        return raw ? (JSON.parse(raw) as WorkspaceChat[]) : null;
+      }
+      return null;
+    }
+
+    const raw = await AsyncStorage.getItem('stitch-noir-chats-cache');
+    return raw ? (JSON.parse(raw) as WorkspaceChat[]) : null;
+  } catch (e) {
+    return null;
+  }
 }
 
 export async function createWorkspaceChat(title = DEFAULT_CHAT_TITLE) {

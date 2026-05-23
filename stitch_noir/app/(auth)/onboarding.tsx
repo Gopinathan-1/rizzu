@@ -4,9 +4,12 @@ import { Text } from '@/components/ui/Text';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { useRouter } from 'expo-router';
 import { Sparkles, ArrowRight } from 'lucide-react-native';
+import { useAppStore } from '@/store/useAppStore';
 
 export default function OnboardingScreen() {
   const router = useRouter();
+  const themeMode = useAppStore((state) => state.themeMode);
+  const isLight = themeMode === 'light';
 
   return (
     <ScreenContainer scrollable={false} className="bg-background">
@@ -38,7 +41,7 @@ export default function OnboardingScreen() {
           onPress={() => router.push('/(auth)/signup')}
         >
           <Text weight="bold" size="lg" className="text-on-primary-container mr-2">Get Started</Text>
-          <ArrowRight size={22} color="#dac5ff" />
+          <ArrowRight size={22} color={isLight ? '#000000' : '#FFFFFF'} />
         </Pressable>
         
         <Pressable onPress={() => router.push('/(auth)/login')} className="items-center">

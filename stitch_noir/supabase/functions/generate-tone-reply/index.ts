@@ -5,11 +5,23 @@ import { getTonePrompt, normalizeToneName } from '../../../lib/tonePrompts.ts';
 function parseReplies(text: string): string[] {
   const trimmed = text.trim();
 
+  const normalizeReply = (value: string) => {
+    const firstSentence = value.split(/(?<=[.!?])\s+/)[0] ?? value;
+    return firstSentence
+      .replace(/\s+/g, ' ')
+      .replace(/^[-*•\d.)\s]+/, '')
+      .replace(/^"|"$/g, '')
+      .trim()
+      .split(' ')
+      .slice(0, 12)
+      .join(' ');
+  };
+
   try {
     const parsed = JSON.parse(trimmed) as unknown;
     if (Array.isArray(parsed)) {
       return parsed
-        .map((item) => String(item).trim())
+        .map((item) => normalizeReply(String(item)))
         .filter(Boolean)
         .slice(0, 3);
     }
@@ -21,7 +33,7 @@ function parseReplies(text: string): string[] {
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter(Boolean)
-    .map((line) => line.replace(/^[-*•\d.)\s]+/, '').replace(/^"|"$/g, '').trim())
+    .map((line) => normalizeReply(line))
     .filter(Boolean)
     .slice(0, 3);
 }
@@ -66,6 +78,7 @@ Deno.serve(async (request) => {
   Context:
   ${context}
 
+  Keep the replies short, simple, and like a real person texting back.
   Return exactly 3 replies, one per line, with no labels, bullets, or extra commentary.`;
 
     const response = await generateText(prompt);

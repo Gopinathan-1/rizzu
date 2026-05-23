@@ -21,8 +21,8 @@ export const Text = ({
   }[weight];
 
   const variantClasses = {
-    display: 'text-5xl font-inter-bold tracking-tighter leading-tight',
-    headline: 'text-2xl font-inter-bold leading-8',
+    display: 'text-5xl font-display font-bold tracking-tight leading-tight',
+    headline: 'text-2xl font-display font-bold leading-8',
     body: 'text-base font-inter leading-6',
     label: 'text-[12px] font-inter-semibold tracking-[0.05em] uppercase',
   };

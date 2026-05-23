@@ -7,6 +7,7 @@ import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { Button } from '@/components/ui/Button';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { ModernComposer } from '@/components/ui/ModernComposer';
 import { Settings, Sparkles, Paperclip, ArrowUp, ChevronDown, Plus } from 'lucide-react-native';
 import { TONE_OPTIONS, normalizeToneName } from '@/lib/tonePrompts';
@@ -17,6 +18,8 @@ import { CopyButton } from '@/components/tones/CopyButton';
 
 export default function BiosScreen() {
   const router = useRouter();
+  const themeMode = useAppStore((state) => state.themeMode);
+  const isLight = themeMode === 'light';
   const activeTone = useAppStore((state) => state.activeTone);
   const setActiveTone = useAppStore((state) => state.setActiveTone);
   const user = useAppStore((state) => state.user);
@@ -113,7 +116,7 @@ Return only valid JSON:
         </View>
         <View className="flex-row items-center gap-4">
           <Pressable className="p-2 rounded-lg active:bg-surface-high" onPress={() => router.push('/settings')}>
-            <Settings size={22} color="#f5f5f5" />
+            <Settings size={22} color={isLight ? '#000000' : '#FFFFFF'} />
           </Pressable>
         </View>
       </View>
@@ -130,9 +133,12 @@ Return only valid JSON:
           >
             {/* Main content area - show results or a placeholder */}
             {results.length === 0 ? (
-              <View className="flex-1 items-center justify-center">
-                <Text className="text-on-surface-variant text-center">Describe your vibe and press send to generate bios.</Text>
-              </View>
+              <EmptyState
+                title="Ready to write your bio"
+                message="Drop in a vibe, a screenshot, or a few words and Stitch Noir will shape it into something sharper."
+                icon={Sparkles}
+                action={<Button label="Generate Bio" icon={ArrowUp} onPress={() => void handleGenerate()} className="rounded-full" />}
+              />
             ) : (
               <View className="flex-1">
                 <View>
@@ -172,19 +178,19 @@ Return only valid JSON:
               toolbarLeft={
                 <Pressable
                   onPress={handlePickReference}
-                  className="h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-background/40 active:bg-white/10"
+                  className="h-11 w-11 items-center justify-center rounded-full border border-border bg-bg-surface active:bg-bg-elevated"
                 >
-                  <Paperclip size={20} color="#d3bbff" />
+                  <Paperclip size={20} color={isLight ? '#000000' : '#FFFFFF'} />
                 </Pressable>
               }
               toolbarCenter={
                 <Pressable
                   onPress={() => setIsTonePickerOpen(true)}
-                  className="flex-row items-center gap-2 rounded-full border border-white/10 bg-background/30 px-3 py-2 active:bg-white/10"
+                  className="flex-row items-center gap-2 rounded-full border border-border bg-accent/10 px-3 py-2 active:bg-white/10"
                 >
-                  <Sparkles size={16} color="#d3bbff" />
-                  <Text size="sm" className="text-on-surface">{selectedTone}</Text>
-                  <ChevronDown size={14} color="#958da1" />
+                  <Sparkles size={16} color={isLight ? '#000000' : '#FFFFFF'} />
+                  <Text size="sm" className="text-accent">{selectedTone}</Text>
+                  <ChevronDown size={14} color={isLight ? '#000000' : '#FFFFFF'} />
                 </Pressable>
               }
               toolbarRight={
@@ -194,9 +200,20 @@ Return only valid JSON:
                     setBioInput('');
                   }}
                   disabled={loading}
-                  className={`h-12 w-12 items-center justify-center rounded-full ${loading ? 'bg-white/5' : bioInput.trim() ? 'bg-primary' : 'bg-white/10'}`}
+                  style={{
+                    height: 48,
+                    width: 48,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderRadius: 999,
+                    backgroundColor: loading
+                      ? isLight ? 'rgba(17,17,17,0.08)' : 'rgba(243,243,243,0.12)'
+                      : bioInput.trim()
+                        ? isLight ? '#111111' : '#F3F3F3'
+                        : isLight ? 'rgba(17,17,17,0.08)' : 'rgba(243,243,243,0.12)'
+                  }}
                 >
-                  {loading ? <ActivityIndicator color="#f4effe" /> : <ArrowUp size={18} color={bioInput.trim() ? '#120f16' : '#d9d3e3'} />}
+                  {loading ? <ActivityIndicator color={isLight ? '#111111' : '#111111'} /> : <ArrowUp size={18} color={bioInput.trim() ? (isLight ? '#FFFFFF' : '#111111') : (isLight ? '#6B7280' : '#9CA3AF')} />}
                 </Pressable>
               }
             />
@@ -204,7 +221,7 @@ Return only valid JSON:
 
                 <Modal visible={isTonePickerOpen} transparent animationType="fade" onRequestClose={() => setIsTonePickerOpen(false)}>
                   <Pressable className="flex-1 justify-end bg-black/55 px-4 pb-6" onPress={() => setIsTonePickerOpen(false)}>
-                    <Pressable className="overflow-hidden rounded-[28px] border border-white/10 bg-surface-container/95 p-4" onPress={(event) => event.stopPropagation()}>
+                    <Pressable className="overflow-hidden rounded-[28px] border border-border bg-surface p-4" onPress={(event) => event.stopPropagation()}>
                       <Text weight="bold" size="xl">Choose tone</Text>
                       <Text className="mt-1 text-on-surface-variant">Replies will follow the selected prompt style.</Text>
                       <View className="mt-4 gap-2">
@@ -217,10 +234,13 @@ Return only valid JSON:
                                         setActiveTone(tone);
                                         setIsTonePickerOpen(false);
                                       }}
-                                      className={`flex-row items-center justify-between rounded-2xl border px-4 py-3 ${isSelected ? 'border-primary bg-primary/15' : 'border-outline-variant bg-background'}`}
+                                      style={{
+                                        borderColor: isSelected ? (isLight ? '#111111' : '#F3F3F3') : undefined,
+                                        backgroundColor: isSelected ? (isLight ? '#111111' : '#F3F3F3') : undefined,
+                                      }}
                                     >
-                                      <Text weight="semibold">{tone}</Text>
-                                      {isSelected ? <Text size="xs" className="text-primary">Selected</Text> : null}
+                                      <Text weight="semibold" className={isSelected ? (isLight ? 'text-background' : 'text-background') : 'text-text-secondary'} style={isSelected ? { color: isLight ? '#FFFFFF' : '#111111' } : undefined}>{tone}</Text>
+                                      {isSelected ? <Text size="xs" style={{ color: isLight ? '#FFFFFF' : '#111111' }}>Selected</Text> : null}
                                     </Pressable>
                                   );
                                 })}

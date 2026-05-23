@@ -1,9 +1,6 @@
-import { chunkText } from '../../../lib/chunking.ts';
-import { buildChunkId, buildRetrievalSummary } from '../../../lib/chroma.ts';
-import { getTonePrompt, normalizeToneName } from '../../../lib/tonePrompts.ts';
-import { generateChatTitle, generateEmbedding, streamText, summarizeMemory } from '../_shared/gemini.ts';
+import { getToneConversationPrompt, normalizeToneName } from '../../../lib/tonePrompts.ts';
+import { generateChatTitle, streamText, summarizeMemory } from '../_shared/gemini.ts';
 import { getAuthedClient, getServiceRoleClient, handleCorsPreflight, withCors } from '../_shared/supabase.ts';
-import { queryChunks, upsertChunks } from '../_shared/chroma.ts';
 
 declare const Deno: {
   serve: (handler: (request: Request) => Promise<Response> | Response) => void;
@@ -11,7 +8,6 @@ declare const Deno: {
 
 const encoder = new TextEncoder();
 const CHAT_MEMORY_LIMIT = 12;
-const RETRIEVAL_LIMIT = 6;
 
 function normalizeTitle(title: string) {
   return title.trim().replace(/\s+/g, ' ').replace(/^"|"$/g, '').slice(0, 80) || 'New chat';
@@ -23,13 +19,52 @@ function parseTitleResponse(text: string) {
   return normalizeTitle(jsonMatch?.[1] ?? fallback);
 }
 
+function isGreetingMessage(message: string) {
+  const normalized = message.trim().toLowerCase().replace(/[^a-z0-9\s'?]/g, '');
+  return (
+    /^(hi|hey|hello|yo|sup|hiya|hii)(\s+(how\s+(?:r|are)\s+u|how are you|how's it going|what'?s up|whats up|wyd))?[\s!?.,]*$/.test(normalized) ||
+    /^(how\s+(?:r|are)\s+u|how are you|how's it going|what'?s up|whats up|wyd)[\s!?.,]*$/.test(normalized)
+  );
+}
+
+function buildGreetingReply(tone: string, message: string) {
+  const normalizedTone = normalizeToneName(tone);
+  const asksHowAreYou = /how\s+(?:r|are)\s+u|how are you|how's it going|what'?s up|whats up|wyd/i.test(message);
+
+  const replies: Record<string, string> = {
+    Witty: asksHowAreYou ? 'Hi, I’m good. How about you?' : 'Hi there.',
+    Mysterious: asksHowAreYou ? 'Hey. I’m good. You?' : 'Hey.',
+    Savage: asksHowAreYou ? 'Yeah, I’m good. You?' : 'Yo.',
+    Professional: asksHowAreYou ? 'Hi, I’m doing well. How are you?' : 'Hi.',
+    Flirty: asksHowAreYou ? 'Hi, I’m good. How about you?' : 'Hey you.',
+  };
+
+  return replies[normalizedTone] ?? (asksHowAreYou ? 'Hi, I’m good. How are you?' : 'Hi.');
+}
+
+function buildFallbackReply(tone: string, message: string) {
+  if (isGreetingMessage(message)) {
+    return buildGreetingReply(tone, message);
+  }
+
+  const normalizedTone = normalizeToneName(tone);
+  const replies: Record<string, string> = {
+    Witty: 'Got you.',
+    Mysterious: 'I see.',
+    Savage: 'Yeah.',
+    Professional: 'Understood.',
+    Flirty: 'Okay, you.'
+  };
+
+  return replies[normalizedTone] ?? 'Got you.';
+}
+
 function buildPrompt(params: {
   chatTitle: string;
   userMessage: string;
   tonePrompt?: string;
   memories: string;
   uploads: string;
-  retrieved: string;
   conversation: Array<{ role: string; content: string }>;
 }) {
   const conversationBlock = params.conversation
@@ -37,20 +72,21 @@ function buildPrompt(params: {
     .join('\n\n');
 
   return [
-    'You are a ChatGPT-style personal memory assistant built into an app called Stitch Noir.',
-    'Answer using a warm, concise, useful style with clean markdown.',
-    'Use relevant uploaded documents, past chats, and long-term memory when helpful.',
-    'If the context is not enough, say what is missing instead of inventing facts.',
+    'Reply like a real person having a chat.',
+    'Write one short message only.',
+    'Keep it simple, natural, and human.',
+    'Never write a paragraph.',
     params.tonePrompt ?? '',
     `Current chat title: ${params.chatTitle}`,
     params.memories ? `Relevant memory summaries:\n${params.memories}` : '',
     params.uploads ? `Recent uploads and file context:\n${params.uploads}` : '',
-    params.retrieved ? `Relevant retrieved chunks:\n${params.retrieved}` : '',
     conversationBlock ? `Conversation so far:\n${conversationBlock}` : '',
     `User message: ${params.userMessage}`,
-    'Respond with exactly 3 short line replies.',
-    'Do not use paragraphs or bullet lists.',
-    'Keep the answer direct and natural. Use markdown only if it stays within three short lines.',
+    'Respond with a single short conversational reply.',
+    'No bullets, no lists, no paragraph formatting.',
+    'If the user greets you, greet them back simply.',
+    'If the user asks a question, answer it briefly.',
+    'Never write more than 2 short sentences.',
   ]
     .filter(Boolean)
     .join('\n\n');
@@ -64,7 +100,7 @@ Deno.serve(async (request) => {
 
   try {
     console.log('[chat-stream] Request received');
-    const { client, user } = await getAuthedClient(request);
+    const { user } = await getAuthedClient(request);
     console.log('[chat-stream] Auth successful, user:', user.id);
     const body = await request.json();
     const chatId = String(body.chatId ?? '');
@@ -97,7 +133,7 @@ Deno.serve(async (request) => {
         .limit(6),
       db
         .from('uploads')
-        .select('id, user_id, chat_id, filename, file_type, storage_path, created_at')
+        .select('id, user_id, chat_id, filename, file_type, extracted_text, created_at')
         .eq('user_id', user.id)
         .eq('chat_id', chatId)
         .order('created_at', { ascending: false })
@@ -105,31 +141,25 @@ Deno.serve(async (request) => {
     ]);
 
     console.log('[chat-stream] Chat context loaded');
-    let retrievedHits: Array<{ document: string }> = [];
-    try {
-      console.log('[chat-stream] Generating embedding for query...');
-      const queryEmbedding = await generateEmbedding(message, 'RETRIEVAL_QUERY');
-      console.log('[chat-stream] Embedding generated, querying chunks...');
-      retrievedHits = await queryChunks({
-        userId: user.id,
-        queryEmbedding,
-        limit: RETRIEVAL_LIMIT,
-        chatId,
-      });
-      console.log(`[chat-stream] Retrieved ${retrievedHits.length} chunks`);
-    } catch (error) {
-      console.warn('[chat-stream] Retrieval failed, continuing without Chroma context.', error);
-    }
     const memoryItems = (memories ?? []) as Array<{ summary: string }>;
-    const uploadItems = (uploads ?? []) as Array<{ filename: string; file_type: string }>;
+    const uploadItems = (uploads ?? []) as Array<{ filename: string; file_type: string; extracted_text: string | null }>;
     const messageItems = (messages ?? []) as Array<{ role: string; content: string }>;
+    const greetingShortcut = isGreetingMessage(message);
+
+    const uploadContext = uploadItems
+      .map((item) => {
+        const extractedText = item.extracted_text?.trim();
+        const textBlock = extractedText ? `\n${extractedText.slice(0, 3500)}` : '';
+        return `${item.filename} (${item.file_type})${textBlock}`;
+      })
+      .join('\n\n');
+
     const prompt = buildPrompt({
       chatTitle: chat?.title ?? 'New chat',
       userMessage: message,
-      tonePrompt: getTonePrompt(normalizeToneName(tone)),
+      tonePrompt: getToneConversationPrompt(normalizeToneName(tone)),
       memories: memoryItems.map((item) => item.summary).join('\n\n'),
-      uploads: uploadItems.map((item) => `${item.filename} (${item.file_type})`).join('\n'),
-      retrieved: buildRetrievalSummary(retrievedHits),
+      uploads: uploadContext,
       conversation: messageItems
         .slice()
         .reverse()
@@ -142,58 +172,34 @@ Deno.serve(async (request) => {
         let assistantText = '';
 
         try {
-          console.log('[chat-stream-stream] Creating text stream...');
-          for await (const chunk of streamText(prompt)) {
-            console.log(`[chat-stream-stream] Got chunk, length: ${chunk.length}`);
-            assistantText += chunk;
-            controller.enqueue(encoder.encode(chunk));
+          if (greetingShortcut) {
+            assistantText = buildGreetingReply(tone ?? 'Witty', message);
+            controller.enqueue(encoder.encode(assistantText));
+          } else {
+            console.log('[chat-stream-stream] Creating text stream...');
+            for await (const chunk of streamText(prompt)) {
+              console.log(`[chat-stream-stream] Got chunk, length: ${chunk.length}`);
+              assistantText += chunk;
+              controller.enqueue(encoder.encode(chunk));
+            }
+
+            if (!assistantText.trim()) {
+              assistantText = buildFallbackReply(tone ?? 'Witty', message);
+              controller.enqueue(encoder.encode(assistantText));
+            }
           }
 
           console.log('[chat-stream-stream] Stream complete, summarizing memory...');
-          const retrievedDocuments = retrievedHits;
           let summary = assistantText.slice(0, 500);
 
           try {
             summary = await summarizeMemory({
               chatTitle: chat?.title ?? 'New chat',
-              extractedText: `${message}\n\n${retrievedDocuments.map((hit) => hit.document).join('\n\n')}`,
+              extractedText: `${message}\n\n${uploadContext}`,
               responseText: assistantText,
             });
           } catch (error) {
             console.warn('[chat-stream-stream] Memory summary failed, using fallback text.', error);
-          }
-
-          try {
-            console.log('[chat-stream-stream] Creating response chunks...');
-            const assistantChunks = chunkText(assistantText).slice(0, 4);
-            const assistantEmbeddings = await Promise.all(
-              assistantChunks.map((chunk) => generateEmbedding(chunk.text, 'RETRIEVAL_DOCUMENT'))
-            );
-
-            console.log('[chat-stream-stream] Upserting chunks...');
-            await upsertChunks({
-              userId: user.id,
-              chunks: assistantChunks.map((chunk, index) => ({
-                id: buildChunkId({
-                  userId: user.id,
-                  chatId,
-                  filename: 'conversation-memory',
-                  chunkIndex: chunk.index,
-                }),
-                text: chunk.text,
-                embedding: assistantEmbeddings[index],
-                metadata: {
-                  userId: user.id,
-                  chatId,
-                  filename: 'conversation-memory',
-                  uploadTimestamp: new Date().toISOString(),
-                  chunkIndex: chunk.index,
-                  sourceType: 'chat',
-                },
-              })),
-            });
-          } catch (error) {
-            console.warn('[chat-stream-stream] Chunk persistence failed, continuing.', error);
           }
 
           console.log('[chat-stream-stream] Saving message and memory...');

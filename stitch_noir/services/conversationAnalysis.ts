@@ -206,13 +206,27 @@ async function generateToneRepliesViaLocalGemini(tone: string, context: string):
 Conversation:
 ${context}
 
+Make the replies feel like real text messages based on the latest user input and the surrounding context.
+
 Return exactly 3 replies, one per line, with no labels, bullets, or extra commentary.`;
   const response = await generateText(prompt);
+  const normalizeReply = (value: string) => {
+    const firstSentence = value.split(/(?<=[.!?])\s+/)[0] ?? value;
+    return firstSentence
+      .replace(/\s+/g, ' ')
+      .replace(/^[-*•\d.)\s]+/, '')
+      .replace(/^"|"$/g, '')
+      .trim()
+      .split(' ')
+      .slice(0, 12)
+      .join(' ');
+  };
+
   const replies = response
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter(Boolean)
-    .map((line) => line.replace(/^[-*•\d.)\s]+/, '').replace(/^"|"$/g, '').trim())
+    .map((line) => normalizeReply(line))
     .filter(Boolean)
     .slice(0, 3);
 

@@ -8,9 +8,9 @@ interface CardProps extends ViewProps {
 
 export const Card = ({ variant = 'default', className = '', ...props }: CardProps) => {
   const variantClasses = {
-    default: 'bg-surface-container',
-    elevated: 'bg-surface-container-high',
-    outline: 'bg-transparent border border-outline-variant',
+    default: 'bg-surface',
+    elevated: 'bg-surface-high',
+    outline: 'bg-transparent border border-outline',
   };
 
   return (

@@ -1,8 +1,5 @@
-import { chunkText } from '../../../lib/chunking.ts';
-import { buildChunkId } from '../../../lib/chroma.ts';
-import { extractTextFromBinary, generateEmbedding, summarizeMemory } from '../_shared/gemini.ts';
+import { extractTextFromBinary, summarizeMemory } from '../_shared/gemini.ts';
 import { getAuthedClient, getServiceRoleClient, handleCorsPreflight, withCors } from '../_shared/supabase.ts';
-import { upsertChunks } from '../_shared/chroma.ts';
 
 const encoder = new TextEncoder();
 const WORKSPACE_BUCKET = 'workspace_uploads';
@@ -53,33 +50,6 @@ Deno.serve(async (request) => {
       ? new TextDecoder().decode(fileBuffer)
       : await extractTextFromBinary(fileBuffer, fileType, filename);
 
-    const chunks = chunkText(extractedText);
-    const embeddings = await Promise.all(
-      chunks.map((chunk) => generateEmbedding(chunk.text, 'RETRIEVAL_DOCUMENT'))
-    );
-
-    const chunkResult = await upsertChunks({
-      userId: user.id,
-      chunks: chunks.map((chunk, index) => ({
-        id: buildChunkId({
-          userId: user.id,
-          chatId,
-          filename,
-          chunkIndex: chunk.index,
-        }),
-        text: chunk.text,
-        embedding: embeddings[index],
-        metadata: {
-          userId: user.id,
-          chatId,
-          filename,
-          uploadTimestamp: new Date().toISOString(),
-          chunkIndex: chunk.index,
-          sourceType: 'upload',
-        },
-      })),
-    });
-
     const summary = await summarizeMemory({
       chatTitle: filename,
       extractedText,
@@ -112,7 +82,6 @@ Deno.serve(async (request) => {
       JSON.stringify({
         upload,
         extractedText,
-        chunkCount: chunkResult.inserted,
         summary,
       }),
       {

@@ -11,6 +11,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { Menu } from 'lucide-react-native';
+import { useAppStore } from '@/store/useAppStore';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChatSidebar } from '@/components/tones/ChatSidebar';
 import type { WorkspaceChat } from '@/services/chatWorkspace';
@@ -38,6 +39,8 @@ function clamp(value: number, lower: number, upper: number) {
 }
 
 function DrawerToggleButton({ open, onPress }: { open: boolean; onPress: () => void }) {
+  const themeMode = useAppStore((state) => state.themeMode);
+  const isLight = themeMode === 'light';
   const insets = useSafeAreaInsets();
   const progress = useSharedValue(open ? 1 : 0);
 
@@ -57,10 +60,10 @@ function DrawerToggleButton({ open, onPress }: { open: boolean; onPress: () => v
   return (
     <Animated.View
       style={[styles.toggleShadow, containerStyle, { top: Math.max(12, insets.top + 8) }]}
-      className="absolute left-3 z-50 overflow-hidden rounded-[16px] border border-white/10 bg-surface-container/80"
+      className="absolute left-3 z-50 overflow-hidden rounded-[16px] border border-border bg-bg-surface/80"
     >
       <Pressable onPress={onPress} hitSlop={12} className="h-12 w-12 items-center justify-center active:opacity-80">
-        <Menu size={20} color="#f4effe" />
+        <Menu size={20} color={isLight ? '#000000' : '#FFFFFF'} />
       </Pressable>
     </Animated.View>
   );
@@ -184,11 +187,11 @@ export function MemoryDrawer({
         <Animated.View
           style={[panelStyle, { width: drawerWidth }]}
           pointerEvents={open ? 'auto' : 'none'}
-          className={`absolute left-0 top-0 h-full overflow-hidden border-r border-white/10 bg-surface-container/95 shadow-2xl shadow-black/60 ${isMobile ? '' : 'rounded-r-[32px]'}`}
+          className={`absolute left-0 top-0 h-full overflow-hidden border-r border-border bg-bg-surface/95 shadow-2xl shadow-black/60 ${isMobile ? '' : 'rounded-r-[32px]'}`}
         >
           <Animated.View entering={FadeIn.duration(180)} className="h-full">
-            <View className="h-full bg-surface-container/95">
-              <View className="flex-row items-center justify-between border-b border-white/10 py-4 pl-16 pr-4">
+            <View className="h-full bg-bg-surface/95">
+              <View className="flex-row items-center justify-between border-b border-border py-4 pl-16 pr-4">
                 <View>
                   <Animated.Text entering={FadeIn.duration(220)} className="text-[11px] font-inter-semibold uppercase tracking-[0.28em] text-on-surface-variant">
                     Memory
@@ -228,7 +231,7 @@ const styles = StyleSheet.create({
     elevation: 20,
   },
   bar: {
-    shadowColor: '#d3bbff',
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 0 },
     shadowRadius: 8,
   },

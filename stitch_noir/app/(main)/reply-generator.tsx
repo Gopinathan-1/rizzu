@@ -22,6 +22,8 @@ import { normalizeToneName } from '@/lib/tonePrompts';
 export default function ReplyGeneratorScreen() {
   const router = useRouter();
   const activeTone = useAppStore((state) => state.activeTone);
+  const themeMode = useAppStore((state) => state.themeMode);
+  const isLight = themeMode === 'light';
   const currentAnalysis = useAppStore((state) => state.currentAnalysis);
   const addToVault = useAppStore((state) => state.addToVault);
   const [selectedTone, setSelectedTone] = useState(normalizeToneName(activeTone || 'Savage'));
@@ -84,10 +86,10 @@ export default function ReplyGeneratorScreen() {
   return (
     <ScreenContainer scrollable={false} className="bg-background">
       <View className="flex-row items-center justify-between py-4 h-16">
-        <Text variant="headline" className="text-2xl tracking-tighter">Aura AI</Text>
+        <Text variant="headline" className="text-2xl tracking-tighter">Stitch Noir</Text>
         <View className="flex-row items-center gap-4">
           <Pressable className="p-2 rounded-lg active:bg-surface-high" onPress={() => router.push('/settings')}>
-            <Settings size={22} color="#f5f5f5" />
+            <Settings size={22} color={isLight ? '#000000' : '#FFFFFF'} />
           </Pressable>
           <View className="w-8 h-8 rounded-full border border-outline-variant overflow-hidden">
             <Image
@@ -99,18 +101,18 @@ export default function ReplyGeneratorScreen() {
       </View>
 
       <View className="mt-8">
-        <View className="flex-row items-center gap-3 mb-4">
+          <View className="flex-row items-center gap-3 mb-4">
           <Text variant="label" className="text-on-surface-variant">Incoming Context</Text>
           <View className="flex-1 h-[1px] bg-outline-variant" />
         </View>
 
-        <Card className="bg-surface-low border border-outline-variant p-4 rounded-xl">
+        <Card className="rounded-xl border border-border bg-bg-elevated p-4">
           <TextInput
             multiline
             value={context}
             onChangeText={setContext}
             placeholder="Paste or type conversation context..."
-            placeholderTextColor="#958da1"
+            placeholderTextColor={isLight ? '#000000' : '#FFFFFF'}
             className="min-h-[120px] text-on-surface font-inter text-base"
             textAlignVertical="top"
           />
@@ -132,9 +134,12 @@ export default function ReplyGeneratorScreen() {
               <Pressable
                 key={tone}
                 onPress={() => setSelectedTone(tone)}
-                className={`px-5 py-3 rounded-full border ${selectedTone === tone ? 'bg-primary-container border-primary' : 'bg-surface-low border-outline-variant'}`}
+                style={{
+                  borderColor: selectedTone === tone ? (isLight ? '#111111' : '#F3F3F3') : undefined,
+                  backgroundColor: selectedTone === tone ? (isLight ? '#111111' : '#F3F3F3') : undefined,
+                }}
               >
-                <Text weight="bold" size="sm" className={selectedTone === tone ? 'text-on-primary-container' : 'text-on-surface'}>
+                <Text weight="bold" size="sm" style={selectedTone === tone ? { color: isLight ? '#FFFFFF' : '#111111' } : undefined}>
                   {tone}
                 </Text>
               </Pressable>
@@ -151,33 +156,33 @@ export default function ReplyGeneratorScreen() {
           disabled={loading}
         />
 
-        {loading ? <ActivityIndicator color="#d3bbff" className="mt-4" /> : null}
+        {loading ? <ActivityIndicator color={isLight ? '#000000' : '#FFFFFF'} className="mt-4" /> : null}
 
         <ScrollView className="mt-6" contentContainerStyle={{ paddingBottom: 120 }}>
           <View className="gap-4">
             {replies.map((reply, index) => (
-              <Card key={`${reply}-${index}`} className="p-5 bg-surface-container border border-outline-variant rounded-2xl">
+              <Card key={`${reply}-${index}`} className="rounded-2xl border border-border bg-bg-surface p-5">
                 <View className="flex-row items-center justify-between mb-4">
                   <View className="bg-secondary-container px-2 py-1 rounded-full">
                     <Text size="xs" weight="bold" className="text-on-secondary-container uppercase">Response {index + 1}</Text>
                   </View>
                   <View className="flex-row items-center gap-3">
                     <Pressable onPress={() => handleCopy(reply)}>
-                      <Copy size={18} color="#e8e0ee" />
+                      <Copy size={18} color={isLight ? '#000000' : '#FFFFFF'} />
                     </Pressable>
                     <Pressable onPress={() => handleSave(reply)}>
-                      <Heart size={18} color="#ffb2b7" />
+                      <Heart size={18} color="#C94040" />
                     </Pressable>
                     <Pressable onPress={handleGenerate}>
-                      <RotateCcw size={18} color="#e8e0ee" />
+                      <RotateCcw size={18} color={isLight ? '#000000' : '#FFFFFF'} />
                     </Pressable>
                   </View>
                 </View>
-                <Text className="text-on-surface leading-relaxed">{reply}</Text>
-                <View className="flex-row items-center justify-between mt-4 pt-4 border-t border-outline-variant/30">
-                  <Text className="text-outline text-xs">Tone: {normalizeToneName(selectedTone)}</Text>
+                <Text className="text-text-primary leading-relaxed">{reply}</Text>
+                <View className="mt-4 flex-row items-center justify-between border-t border-border pt-4">
+                  <Text className="text-text-secondary text-xs">Tone: {normalizeToneName(selectedTone)}</Text>
                   <Pressable onPress={() => handleCopy(reply)} className="flex-row items-center gap-2">
-                    <Share2 size={16} color="#958da1" />
+                    <Share2 size={16} color={isLight ? '#000000' : '#FFFFFF'} />
                     <Text size="sm">Copy</Text>
                   </Pressable>
                 </View>

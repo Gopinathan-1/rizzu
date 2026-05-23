@@ -1,5 +1,6 @@
 import { ReactNode, useState } from 'react';
 import { TextInput, View, type TextInputProps } from 'react-native';
+import { useAppStore } from '@/store/useAppStore';
 
 type ModernComposerProps = {
   value: string;
@@ -24,12 +25,14 @@ export function ModernComposer({
   toolbarRight,
   minHeight = 76,
   maxHeight = 128,
-  containerClassName = 'w-full rounded-[32px] border border-outline-variant bg-surface-container px-4 p-5 pb-1.5 shadow-lg shadow-black/20',
+  containerClassName = 'w-full rounded-[32px] border border-border bg-surface px-4 p-4 pb-2 shadow-lg shadow-black/20',
   inputClassName = 'px-1 py-0 text-base text-on-surface',
   inputProps,
 }: ModernComposerProps) {
   const [inputHeight, setInputHeight] = useState(minHeight);
   const [isFocused, setIsFocused] = useState(false);
+  const themeMode = useAppStore((state) => state.themeMode);
+  const placeholderColor = themeMode === 'light' ? '#000000' : '#FFFFFF';
 
   return (
     <View className={containerClassName}>
@@ -37,7 +40,7 @@ export function ModernComposer({
         value={value}
         onChangeText={onChangeText}
         placeholder={isFocused ? '' : placeholder}
-        placeholderTextColor="#8f879b"
+        placeholderTextColor={placeholderColor}
         multiline
         textAlignVertical="top"
         scrollEnabled={inputHeight >= maxHeight}
@@ -53,7 +56,7 @@ export function ModernComposer({
       />
 
       {(toolbarLeft || toolbarCenter || toolbarRight) ? (
-        <View className="mt-2 flex-row items-center gap-3">
+        <View className="mt-3 flex-row items-center gap-3">
           <View className="flex-row items-center gap-3">{toolbarLeft}</View>
           <View className="flex-1 items-center">{toolbarCenter}</View>
           <View className="flex-row items-center gap-3">{toolbarRight}</View>

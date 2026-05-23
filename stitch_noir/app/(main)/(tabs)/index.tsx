@@ -40,6 +40,8 @@ export default function HomeScreen() {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const isCompactMobile = width < 420;
+  const themeMode = useAppStore((state) => state.themeMode);
+  const isLight = themeMode === 'light';
   
   const [conversation, setConversation] = useState('');
   const [analysisLoading, setAnalysisLoading] = useState(false);
@@ -342,12 +344,13 @@ export default function HomeScreen() {
     <ScreenContainer scrollable={false} className="bg-background">
       <View className="flex-row items-center justify-between py-4 h-16">
         <View className="flex-1" />
-        <View className="absolute inset-x-0 items-center pointer-events-none">
-          <Text variant="headline" className="text-2xl tracking-tighter">Stitch Noir</Text>
+        <View className="absolute inset-x-0 items-center pointer-events-none flex-row">
+          <Text variant="headline" className="text-2xl tracking-tighter text-text-primary">Stitch </Text>
+          <Text variant="headline" className="text-2xl tracking-tighter text-accent">Noir</Text>
         </View>
         <View className="flex-row items-center gap-4">
-          <Pressable className="p-2 rounded-lg active:bg-surface-high" onPress={() => router.push('/settings')}>
-            <Settings size={22} color="#f5f5f5" />
+            <Pressable className="p-2 rounded-lg active:bg-surface-high" onPress={() => router.push('/settings')}>
+            <Settings size={22} color={isLight ? '#000000' : '#FFFFFF'} />
           </Pressable>
         </View>
       </View>
@@ -364,8 +367,8 @@ export default function HomeScreen() {
               {msg.input ? (
                 <View className="items-end">
                   <Text size="sm" className="mb-2 text-on-surface-variant">Your message</Text>
-                  <View className="max-w-[82%] rounded-[20px] border border-primary/30 bg-primary/20 p-4">
-                    <Text className="text-white/95">{msg.input}</Text>
+                  <View className="max-w-[82%] rounded-[20px] border border-border bg-user-bubble p-4">
+                    <Text className="text-text-primary">{msg.input}</Text>
                   </View>
                 </View>
               ) : null}
@@ -386,13 +389,13 @@ export default function HomeScreen() {
                 <View className="mt-3">
                   {msg.replies.map((r: string, idx: number) => (
                     <View key={`${msg.id}-r-${idx}`} className="mb-3 items-start">
-                      <View className={isCompactMobile ? 'w-full rounded-[20px] border border-outline-variant bg-surface-container-lowest/80 p-4' : 'max-w-[82%] rounded-[20px] border border-outline-variant bg-surface-container-lowest/80 p-4'}>
+                      <View className={isCompactMobile ? 'w-full rounded-[20px] border border-border bg-ai-bubble p-4' : 'max-w-[82%] rounded-[20px] border border-border bg-ai-bubble p-4'}>
                         {isCompactMobile ? (
                           <View className="gap-4">
-                            <Text className="text-white/95 leading-6">{r}</Text>
+                            <Text className="text-text-primary leading-6">{r}</Text>
                             <View className="flex-row items-center justify-end gap-2 self-end">
                               <CopyButton value={r} />
-                              <Pressable onPress={() => openRefineModal(msg.id, idx, r)} className="rounded-full bg-white/5 px-3 py-2 border border-white/10">
+                              <Pressable onPress={() => openRefineModal(msg.id, idx, r)} className="rounded-full border border-border bg-bg-elevated px-3 py-2">
                                 <Text size="xs">Refine</Text>
                               </Pressable>
                             </View>
@@ -400,11 +403,11 @@ export default function HomeScreen() {
                         ) : (
                           <View className="flex-row items-start justify-between">
                             <View className="flex-1">
-                              <Text className="text-white/95">{r}</Text>
+                              <Text className="text-text-primary">{r}</Text>
                             </View>
                             <View className="ml-3 flex-row gap-2">
                               <CopyButton value={r} />
-                              <Pressable onPress={() => openRefineModal(msg.id, idx, r)} className="rounded-full bg-white/5 p-2 border border-white/10">
+                              <Pressable onPress={() => openRefineModal(msg.id, idx, r)} className="rounded-full border border-border bg-bg-elevated p-2">
                                 <Text size="xs">Refine</Text>
                               </Pressable>
                             </View>
@@ -421,8 +424,8 @@ export default function HomeScreen() {
           {conversation ? (
             <View className="mb-4 items-end">
               <Text size="sm" className="mb-2 text-on-surface-variant">Your message</Text>
-              <View className="max-w-[82%] rounded-[20px] border border-primary/30 bg-primary/20 p-4">
-                <Text className="text-white/95">{conversation}</Text>
+              <View className="max-w-[82%] rounded-[20px] border border-border bg-user-bubble p-4">
+                <Text className="text-text-primary">{conversation}</Text>
               </View>
             </View>
           ) : null}
@@ -436,19 +439,19 @@ export default function HomeScreen() {
 
                   return (
                     <View key={`${reply}-${index}`} className="items-start">
-                      <View className={isCompactMobile ? 'w-full rounded-[20px] border border-outline-variant bg-surface-container-lowest/80 p-4' : 'max-w-[82%] rounded-[20px] border border-outline-variant bg-surface-container-lowest/80 p-4'}>
+                      <View className={isCompactMobile ? 'w-full rounded-[20px] border border-border bg-ai-bubble p-4' : 'max-w-[82%] rounded-[20px] border border-border bg-ai-bubble p-4'}>
                         {isCompactMobile ? (
                           <View className="gap-4">
-                            <Text className="text-white/95 leading-6">{reply}</Text>
+                            <Text className="text-text-primary leading-6">{reply}</Text>
                             <View className="flex-row items-center justify-between gap-2">
                               <View className="rounded-full border border-outline-variant bg-background/40 px-2.5 py-1">
-                                <Text size="xs" className="text-primary">{toneLabel}</Text>
+                                <Text size="xs" className="text-accent">{toneLabel}</Text>
                               </View>
                               <View className="flex-row items-center gap-2">
                                 <CopyButton value={reply} />
                                 <Pressable
                                   onPress={() => openRefineModal('current', index, reply)}
-                                  className="rounded-full bg-white/5 px-3 py-2"
+                                  className="rounded-full border border-border bg-bg-elevated px-3 py-2"
                                 >
                                   <Text size="xs">Refine</Text>
                                 </Pressable>
@@ -458,10 +461,10 @@ export default function HomeScreen() {
                         ) : (
                           <View className="flex-row items-start justify-between">
                             <View className="flex-1">
-                              <Text className="text-white/95">{reply}</Text>
+                              <Text className="text-text-primary">{reply}</Text>
                               <View className="mt-2 flex-row items-center gap-2">
                                 <View className="rounded-full border border-outline-variant bg-background/40 px-2.5 py-1">
-                                  <Text size="xs" className="text-primary">{toneLabel}</Text>
+                                  <Text size="xs" className="text-accent">{toneLabel}</Text>
                                 </View>
                               </View>
                             </View>
@@ -469,7 +472,7 @@ export default function HomeScreen() {
                               <CopyButton value={reply} />
                               <Pressable
                                 onPress={() => openRefineModal('current', index, reply)}
-                                className="rounded-full bg-white/5 px-3 py-2"
+                                className="rounded-full border border-border bg-bg-elevated px-3 py-2"
                               >
                                 <Text size="xs">Refine</Text>
                               </Pressable>
@@ -486,7 +489,7 @@ export default function HomeScreen() {
 
           {!conversation && replies.length === 0 && historyMessages.length === 0 ? (
             <View className="items-center justify-center py-20">
-              <Text className="text-on-surface-variant/70 text-center">Start chatting below</Text>
+              <Text className="text-text-secondary/70 text-center">Start chatting below</Text>
             </View>
           ) : null}
         </ScrollView>
@@ -506,48 +509,70 @@ export default function HomeScreen() {
           toolbarLeft={
             <Pressable
               onPress={handlePickScreenshot}
-              className="h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-background/40 active:bg-white/10"
+              className="h-11 w-11 items-center justify-center rounded-full border border-border bg-bg-surface active:bg-bg-elevated"
             >
-              <Paperclip size={22} color="#d3bbff" />
+                <Paperclip size={22} color={isLight ? '#000000' : '#FFFFFF'} />
             </Pressable>
           }
           toolbarRight={
             <Pressable
               onPress={handleSendMessage}
               disabled={analysisLoading}
-              className={`h-12 w-12 items-center justify-center rounded-full ${analysisLoading ? 'bg-white/5' : conversation.trim() || screenshotAsset ? 'bg-primary' : 'bg-white/10'}`}
+              style={{
+                height: 48,
+                width: 48,
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: 999,
+                backgroundColor: analysisLoading
+                  ? isLight ? 'rgba(17,17,17,0.08)' : 'rgba(243,243,243,0.12)'
+                  : conversation.trim() || screenshotAsset
+                    ? isLight ? '#111111' : '#F3F3F3'
+                    : isLight ? 'rgba(17,17,17,0.08)' : 'rgba(243,243,243,0.12)'
+              }}
             >
-              {analysisLoading ? <ActivityIndicator color="#f4effe" /> : <ArrowUp size={18} color={conversation.trim() || screenshotAsset ? '#120f16' : '#d9d3e3'} />}
+                {analysisLoading ? <ActivityIndicator color={isLight ? '#111111' : '#111111'} /> : <ArrowUp size={18} color={conversation.trim() || screenshotAsset ? (isLight ? '#FFFFFF' : '#111111') : (isLight ? '#6B7280' : '#9CA3AF')} />}
             </Pressable>
           }
         />
       </View>
 
       {analysisError ? (
-        <Card className="mt-4 p-4 bg-red-500/10 border border-red-500/30">
-          <Text className="text-red-200">{analysisError}</Text>
+        <Card className="mt-4 border border-danger/30 bg-danger/10 p-4">
+          <Text className="text-danger">{analysisError}</Text>
         </Card>
       ) : null}
 
       {/* Refine modal */}
       <Modal visible={refineModalVisible} animationType="slide" transparent>
         <View className="flex-1 justify-end bg-black/40">
-          <View className="bg-surface-container p-4 rounded-t-2xl">
+          <View className="rounded-t-2xl bg-surface p-4">
             <Text variant="label" className="mb-2">Refine Reply</Text>
             <TextInput
               multiline
               value={refineInstruction}
               onChangeText={setRefineInstruction}
               placeholder="Instructions (e.g. make it friendlier, add detail...)"
-              className="min-h-[80px] text-on-surface bg-transparent border border-outline-variant p-2 rounded"
+              className="min-h-[80px] rounded border border-border bg-transparent p-2 text-text-primary"
             />
             <View className="mt-3">
-              <Text size="xs" className="text-on-surface-variant mb-2">Target tone</Text>
+              <Text size="xs" className="text-text-secondary mb-2">Target tone</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} className="-mx-2 px-2">
                 <View className="flex-row gap-2">
                   {['Casual', 'Friendly', 'Playful', 'Teasing', 'Enthusiastic'].map((t) => (
-                    <Pressable key={t} onPress={() => setRefineTone(t)} className={`px-4 py-2 rounded-full border ${refineTone === t ? 'bg-primary-container border-primary' : 'bg-surface-low border-outline-variant'}`}>
-                      <Text className={refineTone === t ? 'text-on-primary-container' : 'text-on-surface'}>{t}</Text>
+                    <Pressable
+                      key={t}
+                      onPress={() => setRefineTone(t)}
+                      style={{
+                        borderWidth: 1,
+                        borderColor: refineTone === t ? (isLight ? '#111111' : '#F3F3F3') : undefined,
+                        backgroundColor: refineTone === t ? (isLight ? '#111111' : '#F3F3F3') : undefined,
+                        borderRadius: 999,
+                        paddingHorizontal: 16,
+                        paddingVertical: 8,
+                      }}
+                    >
+                      <Text style={refineTone === t ? { color: isLight ? '#FFFFFF' : '#111111' } : undefined}>{t}</Text>
                     </Pressable>
                   ))}
                 </View>
@@ -555,11 +580,23 @@ export default function HomeScreen() {
             </View>
 
             <View className="mt-4 flex-row justify-end gap-3">
-              <Pressable onPress={() => setRefineModalVisible(false)} className="px-4 py-2 rounded-full bg-white/5">
+              <Pressable onPress={() => setRefineModalVisible(false)} className="rounded-full border border-border bg-bg-elevated px-4 py-2">
                 <Text>Cancel</Text>
               </Pressable>
-              <Pressable onPress={handleApplyRefine} className="px-4 py-2 rounded-full bg-primary">
-                {refineLoading ? <ActivityIndicator color="#120f16" /> : <Text weight="bold">Apply</Text>}
+              <Pressable
+                onPress={handleApplyRefine}
+                style={{
+                  borderRadius: 999,
+                  paddingHorizontal: 16,
+                  paddingVertical: 8,
+                  backgroundColor: isLight ? '#111111' : '#F3F3F3',
+                }}
+              >
+                {refineLoading ? (
+                  <ActivityIndicator color={isLight ? '#FFFFFF' : '#111111'} />
+                ) : (
+                  <Text weight="bold" style={{ color: isLight ? '#FFFFFF' : '#111111' }}>Apply</Text>
+                )}
               </Pressable>
             </View>
           </View>

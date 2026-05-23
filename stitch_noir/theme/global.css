@@ -1,3 +1,40 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+	:root[data-theme='light'] {
+		--color-bg-primary: rgb(245 242 238);
+		--color-bg-surface: rgb(236 234 230);
+		--color-bg-elevated: rgb(226 223 217);
+		--color-accent: rgb(160 118 42);
+		--color-accent-subtle: rgba(160, 118, 42, 0.09);
+		--color-accent-glow: rgba(160, 118, 42, 0.15);
+		--color-text-primary: rgb(26 26 26);
+		--color-text-secondary: rgb(136 136 136);
+		--color-border: rgb(216 213 207);
+		--color-danger: rgb(201 64 64);
+		--color-user-bubble: rgb(255 255 255);
+		--color-ai-bubble: rgb(242 242 242);
+	}
+
+	:root[data-theme='dark'] {
+		--color-bg-primary: rgb(28 28 28);
+		--color-bg-surface: rgb(38 38 38);
+		--color-bg-elevated: rgb(48 48 48);
+		--color-accent: rgb(201 168 76);
+		--color-accent-subtle: rgba(201, 168, 76, 0.09);
+		--color-accent-glow: rgba(201, 168, 76, 0.18);
+		--color-text-primary: rgb(240 240 240);
+		--color-text-secondary: rgb(140 140 140);
+		--color-border: rgb(60 60 60);
+		--color-danger: rgb(224 85 85);
+		--color-user-bubble: rgb(32 32 32);
+		--color-ai-bubble: rgb(44 44 44);
+	}
+
+	html, body {
+		background: rgb(var(--color-bg-primary));
+		color: rgb(var(--color-text-primary));
+	}
+}

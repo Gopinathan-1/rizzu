@@ -27,6 +27,7 @@ export type HistoryItem = {
 type AppState = {
   user: { id: string; email?: string | null; full_name?: string | null } | null;
   isPremium: boolean;
+  themeMode: 'light' | 'dark';
   activeTone: string;
   activeChatId: string | null;
   currentAnalysis: AnalysisResult | null;
@@ -35,6 +36,7 @@ type AppState = {
   trendingToneExamples: Record<string, string>;
   setUser: (user: AppState['user']) => void;
   setPremium: (isPremium: boolean) => void;
+  setThemeMode: (mode: AppState['themeMode']) => void;
   setActiveTone: (tone: string) => void;
   setActiveChatId: (chatId: string | null) => void;
   setAnalysis: (analysis: AnalysisResult | null) => void;
@@ -66,6 +68,7 @@ const storage = createJSONStorage(() => {
 const initialState = {
   user: null,
   isPremium: false,
+  themeMode: 'dark' as const,
   activeTone: 'Witty',
   activeChatId: null,
   currentAnalysis: null,
@@ -80,6 +83,7 @@ export const useAppStore = create<AppState>()(
       ...initialState,
       setUser: (user) => set({ user }),
       setPremium: (isPremium) => set({ isPremium }),
+      setThemeMode: (themeMode) => set({ themeMode }),
       setActiveTone: (tone) => set({ activeTone: tone }),
       setActiveChatId: (activeChatId) => set({ activeChatId }),
       setAnalysis: (analysis) => set({ currentAnalysis: analysis }),
@@ -108,6 +112,7 @@ export const useAppStore = create<AppState>()(
       partialize: (state) => ({
         user: state.user,
         isPremium: state.isPremium,
+        themeMode: state.themeMode,
         activeTone: state.activeTone,
         activeChatId: state.activeChatId,
         currentAnalysis: state.currentAnalysis,

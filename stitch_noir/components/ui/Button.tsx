@@ -2,6 +2,7 @@ import { Pressable, PressableProps, View } from 'react-native';
 // NativeWind 4.x uses the babel plugin to enhance components.
 import { Text } from './Text';
 import { LucideIcon } from 'lucide-react-native';
+import { useAppStore } from '@/store/useAppStore';
 
 interface ButtonProps extends PressableProps {
   label?: string;
@@ -21,9 +22,12 @@ export const Button = ({
   className = '',
   ...props
 }: ButtonProps) => {
+  const themeMode = useAppStore((state) => state.themeMode);
+  const isLight = themeMode === 'light';
+
   const variantClasses = {
-    primary: 'bg-primary-container',
-    secondary: 'bg-secondary-container',
+    primary: 'bg-primary',
+    secondary: 'bg-surface-high',
     outline: 'border border-outline bg-transparent',
     ghost: 'bg-transparent',
   };
@@ -35,31 +39,57 @@ export const Button = ({
   };
 
   const textClasses = {
-    primary: 'text-on-primary-container',
-    secondary: 'text-on-secondary-container',
+    primary: 'text-background',
+    secondary: 'text-on-surface',
     outline: 'text-on-surface',
     ghost: 'text-on-surface',
   };
 
+  // Use shades of black rather than pure #000000 for contrast
+  const darkShade = '#111111';
+  const darkShade2 = '#1A1A1A';
+  const lightShade = '#F3F3F3';
+
+  let bgColor: string | undefined;
+  let textColor: string;
+
+  if (variant === 'primary') {
+    bgColor = isLight ? darkShade : darkShade2;
+    textColor = '#FFFFFF';
+  } else if (variant === 'secondary') {
+    bgColor = isLight ? lightShade : '#0D0D0D';
+    textColor = isLight ? darkShade : lightShade;
+  } else if (variant === 'outline' || variant === 'ghost') {
+    bgColor = 'transparent';
+    textColor = isLight ? darkShade : '#FFFFFF';
+  } else {
+    bgColor = undefined;
+    textColor = isLight ? darkShade : '#FFFFFF';
+  }
+
+  const iconColor = textColor;
+
   return (
     <Pressable
       className={`flex-row items-center justify-center active:opacity-80 ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
+      style={[{ backgroundColor: bgColor }, (props as any).style]}
       {...props}
     >
       {Icon && iconPosition === 'left' && (
-        <Icon size={20} color={variant === 'primary' ? '#dac5ff' : '#e8e0ee'} className="mr-2" />
+        <Icon size={20} color={iconColor} className="mr-2" />
       )}
       {label && (
         <Text 
           weight="bold" 
           className={textClasses[variant]}
           size={size === 'lg' ? 'lg' : 'md'}
+          style={{ color: textColor }}
         >
           {label}
         </Text>
       )}
       {Icon && iconPosition === 'right' && (
-        <Icon size={20} color={variant === 'primary' ? '#dac5ff' : '#e8e0ee'} className="ml-2" />
+        <Icon size={20} color={iconColor} className="ml-2" />
       )}
     </Pressable>
   );

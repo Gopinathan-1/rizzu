@@ -16,20 +16,20 @@ export function ToneChip({ label, active = false, onPress }: ToneChipProps) {
     >
       {active ? (
         <LinearGradient
-          colors={['rgba(139, 92, 246, 0.98)', 'rgba(59, 130, 246, 0.92)']}
+          colors={['rgba(160, 118, 42, 0.16)', 'rgba(160, 118, 42, 0.10)']}
           start={{ x: 0, y: 0.5 }}
           end={{ x: 1, y: 0.5 }}
-          className="px-3.5 py-2 rounded-full border border-white/15 shadow-lg shadow-violet-500/20"
+          className="px-3.5 py-2 rounded-full border border-border shadow-lg shadow-black/10"
         >
           <View>
-            <Text weight="bold" className="text-white tracking-tight">
+            <Text weight="bold" className="text-accent tracking-tight">
               {label}
             </Text>
           </View>
         </LinearGradient>
       ) : (
-        <View className="px-3.5 py-2 rounded-full bg-white/4 border border-white/8 shadow-sm shadow-black/10 hover:bg-white/6">
-          <Text size="sm" className="text-white/70 tracking-tight">{label}</Text>
+        <View className="px-3.5 py-2 rounded-full bg-bg-elevated border border-border shadow-sm shadow-black/10 hover:bg-bg-elevated">
+          <Text size="sm" className="text-text-secondary tracking-tight">{label}</Text>
         </View>
       )}
     </Pressable>

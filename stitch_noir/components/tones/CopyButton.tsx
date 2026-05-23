@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Pressable } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { Check, Copy } from 'lucide-react-native';
+import { useAppStore } from '@/store/useAppStore';
 
 interface CopyButtonProps {
   value: string;
@@ -35,9 +36,13 @@ export function CopyButton({ value, onCopied }: CopyButtonProps) {
   return (
     <Pressable
       onPress={handleCopy}
-      className="items-center justify-center rounded-full bg-white/5 p-2 border border-white/10 opacity-85 active:scale-[0.96] transition-all duration-200 hover:opacity-100 hover:bg-white/10 hover:shadow-md hover:shadow-violet-500/10"
+      className="items-center justify-center rounded-full bg-bg-elevated p-2 border border-border opacity-85 active:scale-[0.96] transition-all duration-200 hover:opacity-100 hover:bg-bg-elevated"
     >
-      {copied ? <Check size={15} color="#86efac" /> : <Copy size={15} color="#efe9ff" />}
+      {(() => {
+        const themeMode = useAppStore((state) => state.themeMode);
+        const isLight = themeMode === 'light';
+        return copied ? <Check size={15} color={isLight ? '#000000' : '#FFFFFF'} /> : <Copy size={15} color={isLight ? '#000000' : '#FFFFFF'} />;
+      })()}
     </Pressable>
   );
 }

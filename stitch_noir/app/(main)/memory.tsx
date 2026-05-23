@@ -11,6 +11,7 @@ import {
   deleteWorkspaceChat,
   fetchWorkspaceChats,
   renameWorkspaceChat,
+  loadCachedChats,
   type WorkspaceChat,
 } from '@/services/chatWorkspace';
 import { useAppStore } from '@/store/useAppStore';
@@ -61,6 +62,8 @@ export default function MemoryScreen() {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const isCompactMobile = width < 420;
+  const themeMode = useAppStore((state) => state.themeMode);
+  const isLight = themeMode === 'light';
   const activeChatId = useAppStore((state) => state.activeChatId);
   const setActiveChatId = useAppStore((state) => state.setActiveChatId);
   const [searchText, setSearchText] = useState('');
@@ -99,7 +102,22 @@ export default function MemoryScreen() {
   }, [searchText, selectedChatId, setActiveChatId]);
 
   useEffect(() => {
-    void refreshChats();
+    let mounted = true;
+    void (async () => {
+      const cached = await loadCachedChats();
+      if (mounted && cached && cached.length > 0) {
+        setChats(cached);
+        if (!selectedChatId) {
+          setSelectedChatId(cached[0].id);
+          setActiveChatId(cached[0].id);
+        }
+      }
+      void refreshChats();
+    })();
+
+    return () => {
+      mounted = false;
+    };
   }, [refreshChats]);
 
   useEffect(() => {
@@ -187,7 +205,7 @@ export default function MemoryScreen() {
             hitSlop={12}
             className="h-11 w-11 items-center justify-center rounded-full border border-outline-variant bg-background/30 active:bg-white/10"
           >
-            <ChevronLeft size={20} color="#d3bbff" />
+            <ChevronLeft size={20} color={isLight ? '#000000' : '#FFFFFF'} />
           </Pressable>
 
           <View className="items-center">
@@ -199,9 +217,7 @@ export default function MemoryScreen() {
             </Text>
           </View>
 
-          <Pressable className="rounded-full border border-outline-variant px-3 py-2 active:bg-white/10" onPress={handleNewChat}>
-            <Plus size={16} color="#d3bbff" />
-          </Pressable>
+          <View className="w-11" />
         </View>
 
         <View className="border-b border-outline-variant px-4 py-4">
@@ -218,12 +234,12 @@ export default function MemoryScreen() {
           </View>
 
           <View className="flex-row items-center rounded-2xl border border-outline-variant bg-surface-container px-3">
-            <Search size={18} color="#958da1" />
+            <Search size={18} color={isLight ? '#000000' : '#FFFFFF'} />
             <TextInput
               value={searchText}
               onChangeText={setSearchText}
               placeholder="Search chats"
-              placeholderTextColor="#958da1"
+              placeholderTextColor={isLight ? '#000000' : '#FFFFFF'}
               className="ml-2 flex-1 py-3 text-on-surface"
             />
           </View>

@@ -1,6 +1,7 @@
 import { View, Image } from 'react-native';
 import Markdown from 'react-native-markdown-display';
 import { Text } from '@/components/ui/Text';
+import { useAppStore } from '@/store/useAppStore';
 
 export type ChatMessageBubbleProps = {
   role: 'user' | 'assistant' | 'system';
@@ -12,16 +13,29 @@ export type ChatMessageBubbleProps = {
 
 export function ChatMessageBubble({ role, content, createdAt, streaming = false, imageUri }: ChatMessageBubbleProps) {
   const isUser = role === 'user';
+  const themeMode = useAppStore((state) => state.themeMode);
+  const isLight = themeMode === 'light';
+  const bodyColor = isLight ? '#000000' : '#FFFFFF';
+  const headingColor = isLight ? '#000000' : '#FFFFFF';
+  const codeColor = isLight ? '#000000' : '#FFFFFF';
+  const codeBackground = isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)';
+  const fenceBackground = isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.06)';
 
   return (
     <View className={`mb-4 flex-row ${isUser ? 'justify-end' : 'justify-start'}`}>
       <View
         className={`max-w-[86%] rounded-3xl border px-4 py-3 ${
           isUser
-            ? 'border-primary/30 bg-primary/15'
+            ? isLight
+              ? 'border-border bg-user-bubble'
+              : 'border-border bg-user-bubble'
             : role === 'system'
-              ? 'border-secondary/30 bg-secondary/10'
-              : 'border-outline-variant bg-surface-container-high'
+              ? isLight
+                ? 'border-border bg-bg-surface'
+                : 'border-border bg-bg-surface'
+              : isLight
+                ? 'border-border bg-ai-bubble'
+                : 'border-border bg-ai-bubble'
         }`}
       >
         {imageUri ? (
@@ -32,7 +46,7 @@ export function ChatMessageBubble({ role, content, createdAt, streaming = false,
         <Markdown
           style={{
             body: {
-              color: '#e8e0ee',
+              color: bodyColor,
               fontSize: 15,
               lineHeight: 22,
             },
@@ -41,28 +55,28 @@ export function ChatMessageBubble({ role, content, createdAt, streaming = false,
               marginBottom: 10,
             },
             heading1: {
-              color: '#ffffff',
+              color: headingColor,
               marginBottom: 8,
             },
             heading2: {
-              color: '#ffffff',
+              color: headingColor,
               marginBottom: 8,
             },
             code_inline: {
-              backgroundColor: 'rgba(255,255,255,0.08)',
+              backgroundColor: codeBackground,
               borderRadius: 6,
               paddingHorizontal: 4,
               paddingVertical: 2,
-              color: '#f4f0ff',
+              color: codeColor,
             },
             fence: {
-              backgroundColor: 'rgba(255,255,255,0.06)',
+              backgroundColor: fenceBackground,
               borderRadius: 14,
               padding: 12,
-              color: '#f4f0ff',
+              color: codeColor,
             },
             blockquote: {
-              borderLeftColor: '#d3bbff',
+              borderLeftColor: isLight ? '#000000' : '#FFFFFF',
               borderLeftWidth: 3,
               paddingLeft: 12,
               opacity: 0.9,
@@ -72,7 +86,7 @@ export function ChatMessageBubble({ role, content, createdAt, streaming = false,
           {content || (streaming ? 'Thinking…' : '')}
         </Markdown>
         {createdAt ? (
-          <Text size="xs" className="mt-2 text-on-surface-variant/70">
+          <Text size="xs" className="mt-2 text-text-secondary">
             {new Date(createdAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
           </Text>
         ) : null}

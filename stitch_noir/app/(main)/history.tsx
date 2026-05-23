@@ -4,12 +4,16 @@ import { useRouter } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
 import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { fetchHistoryRecords, HistoryRecord } from '@/services/appData';
-import { ChevronLeft, Copy } from 'lucide-react-native';
+import { ChevronLeft, Copy, History } from 'lucide-react-native';
+import { useAppStore } from '@/store/useAppStore';
 
 const HistoryItemContent = ({ item }: { item: HistoryRecord }) => {
   if (!item.content) return null;
+  const themeMode = useAppStore((state) => state.themeMode);
+  const isLight = themeMode === 'light';
 
   try {
     const data = JSON.parse(item.content);
@@ -70,6 +74,8 @@ const ExpandedHistoryItem = ({ item, onCopy }: { item: HistoryRecord; onCopy: (t
 
   try {
     const data = JSON.parse(item.content);
+    const themeMode = useAppStore((state) => state.themeMode);
+    const isLight = themeMode === 'light';
 
     return (
       <View className="mt-4 pt-4 border-t border-outline-variant/30 gap-4">
@@ -106,9 +112,9 @@ const ExpandedHistoryItem = ({ item, onCopy }: { item: HistoryRecord; onCopy: (t
                     onPress={() => onCopy(result)}
                   >
                     <Text className="text-on-surface leading-relaxed">{result}</Text>
-                    <View className="flex-row justify-end mt-2">
-                       <Copy size={14} color="#958da1" />
-                    </View>
+                      <View className="flex-row justify-end mt-2">
+                        <Copy size={14} color={isLight ? '#000000' : '#FFFFFF'} />
+                      </View>
                   </Pressable>
                 ))}
               </View>
@@ -117,18 +123,20 @@ const ExpandedHistoryItem = ({ item, onCopy }: { item: HistoryRecord; onCopy: (t
         )}
 
         <Pressable className="mt-2 flex-row items-center justify-center gap-2 bg-surface-container-highest py-3 rounded-xl" onPress={() => onCopy(item.content!)}>
-          <Copy size={16} color="#d3bbff" />
-          <Text weight="bold" className="text-primary">Copy Raw JSON</Text>
+          <Copy size={16} color={isLight ? '#000000' : '#FFFFFF'} />
+          <Text weight="bold" className="text-accent">Copy Raw JSON</Text>
         </Pressable>
       </View>
     );
   } catch (e) {
-    return <Text className="text-on-surface-variant mt-4">{item.content}</Text>;
+    return <Text className="text-text-secondary mt-4">{item.content}</Text>;
   }
 };
 
 export default function HistoryScreen() {
   const router = useRouter();
+  const themeMode = useAppStore((state) => state.themeMode);
+  const isLight = themeMode === 'light';
   const [items, setItems] = useState<HistoryRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -165,41 +173,37 @@ export default function HistoryScreen() {
     <ScreenContainer scrollable={false} className="bg-background">
       <View className="flex-row items-center py-4 h-16">
         <Pressable onPress={() => router.back()} className="p-2 -ml-2 rounded-lg active:bg-surface-high">
-          <ChevronLeft size={24} color="#e8e0ee" />
+          <ChevronLeft size={24} color={isLight ? '#000000' : '#FFFFFF'} />
         </Pressable>
         <Text variant="headline" className="ml-2 tracking-tighter">History</Text>
       </View>
 
-      <Text className="text-on-surface-variant mb-8 font-inter">Your personal AI logs and social intelligence archive.</Text>
+      <Text className="text-text-secondary mb-8 font-inter">Your personal AI logs and social intelligence archive.</Text>
 
       {loading ? (
         <View className="py-20 items-center">
-          <ActivityIndicator color="#d3bbff" />
+          <ActivityIndicator color={isLight ? '#000000' : '#FFFFFF'} />
         </View>
       ) : (
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
           <View className="gap-4">
             {items.length === 0 ? (
-              <Card className="p-10 bg-surface-container border border-outline-variant items-center rounded-3xl">
-                <View className="w-16 h-16 rounded-full bg-surface-container-high items-center justify-center mb-6">
-                   <History size={32} color="#958da1" />
-                </View>
-                <Text weight="bold" size="xl" className="text-center">No history yet</Text>
-                <Text className="text-outline text-center mt-2 leading-relaxed">
-                  Every Gemini generation and analysis is logged here once you start using the lab.
-                </Text>
-              </Card>
+              <EmptyState
+                title="No history yet"
+                message="Every generation, reply set, and analysis will appear here once you start using Stitch Noir."
+                icon={History}
+              />
             ) : (
               items.map((item) => (
                 <Pressable key={item.id} onPress={() => setExpandedId(expandedId === item.id ? null : item.id)}>
-                  <Card className={`p-5 border rounded-2xl ${expandedId === item.id ? 'bg-surface-container-high border-primary/50' : 'bg-surface-container border-outline-variant'}`}>
+                  <Card className={`rounded-2xl border p-5 ${expandedId === item.id ? 'border-accent bg-bg-elevated' : 'border-border bg-bg-surface'}`}>
                     <View className="flex-row items-center justify-between mb-4">
-                      <View className={`px-2 py-0.5 rounded ${item.type === 'analysis' ? 'bg-secondary-container' : item.type === 'reply' ? 'bg-primary-container' : 'bg-tertiary-container'}`}>
-                        <Text size="xs" weight="bold" className="uppercase tracking-widest" style={{ color: item.type === 'analysis' ? '#e6ecff' : item.type === 'reply' ? '#dac5ff' : '#ffbec1' }}>
+                      <View className={`rounded px-2 py-0.5 ${item.type === 'analysis' ? 'bg-accent/10' : item.type === 'reply' ? 'bg-accent/10' : 'bg-danger/10'}`}>
+                        <Text size="xs" weight="bold" className="uppercase tracking-widest text-text-secondary">
                           {item.type}
                         </Text>
                       </View>
-                      <Text className="text-outline text-[10px]">{item.created_at ? new Date(item.created_at).toLocaleDateString() : ''}</Text>
+                      <Text className="text-text-secondary text-[10px]">{item.created_at ? new Date(item.created_at).toLocaleDateString() : ''}</Text>
                     </View>
                     
                     <HistoryItemContent item={item} />
