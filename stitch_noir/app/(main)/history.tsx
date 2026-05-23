@@ -113,7 +113,7 @@ const ExpandedHistoryItem = ({ item, onCopy }: { item: HistoryRecord; onCopy: (t
                   >
                     <Text className="text-on-surface leading-relaxed">{result}</Text>
                       <View className="flex-row justify-end mt-2">
-                        <Copy size={14} color={isLight ? '#000000' : '#FFFFFF'} />
+                        <Copy size={14} color={isLight ? '#1A1A1A' : '#FDFBD4'} />
                       </View>
                   </Pressable>
                 ))}
@@ -123,7 +123,7 @@ const ExpandedHistoryItem = ({ item, onCopy }: { item: HistoryRecord; onCopy: (t
         )}
 
         <Pressable className="mt-2 flex-row items-center justify-center gap-2 bg-surface-container-highest py-3 rounded-xl" onPress={() => onCopy(item.content!)}>
-          <Copy size={16} color={isLight ? '#000000' : '#FFFFFF'} />
+          <Copy size={16} color={isLight ? '#1A1A1A' : '#FDFBD4'} />
           <Text weight="bold" className="text-accent">Copy Raw JSON</Text>
         </Pressable>
       </View>
@@ -173,7 +173,7 @@ export default function HistoryScreen() {
     <ScreenContainer scrollable={false} className="bg-background">
       <View className="flex-row items-center py-4 h-16">
         <Pressable onPress={() => router.back()} className="p-2 -ml-2 rounded-lg active:bg-surface-high">
-          <ChevronLeft size={24} color={isLight ? '#000000' : '#FFFFFF'} />
+          <ChevronLeft size={24} color={isLight ? '#1A1A1A' : '#FDFBD4'} />
         </Pressable>
         <Text variant="headline" className="ml-2 tracking-tighter">History</Text>
       </View>
@@ -182,7 +182,7 @@ export default function HistoryScreen() {
 
       {loading ? (
         <View className="py-20 items-center">
-          <ActivityIndicator color={isLight ? '#000000' : '#FFFFFF'} />
+          <ActivityIndicator color={isLight ? '#1A1A1A' : '#FDFBD4'} />
         </View>
       ) : (
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>

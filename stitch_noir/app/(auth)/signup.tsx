@@ -8,10 +8,13 @@ import { useRouter } from 'expo-router';
 import { User, Mail, Lock, ArrowRight, Check } from 'lucide-react-native';
 import { useAppStore } from '@/store/useAppStore';
 import { authService } from '@/services/auth';
+import type { PersonalizedToneProfile } from '@/lib/tonePrompts';
+import { CHOCOLATE_TRUFFLE_DARK, CHOCOLATE_TRUFFLE_LIGHT } from '@/theme/palette';
 
 export default function SignupScreen() {
   const router = useRouter();
   const themeMode = useAppStore((state) => state.themeMode);
+  const toneProfile = useAppStore((state) => state.toneProfile);
   const isLight = themeMode === 'light';
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -32,7 +35,7 @@ export default function SignupScreen() {
     }
 
     setLoading(true);
-    const { data, error } = await authService.signup(email, password, fullName);
+    const { data, error } = await authService.signup(email, password, fullName, toneProfile as PersonalizedToneProfile | null);
     setLoading(false);
 
     if (error) {
@@ -41,6 +44,11 @@ export default function SignupScreen() {
     }
 
     Alert.alert('Success', 'Account created! Please check your email to verify.');
+    if (data?.session) {
+      router.replace('/(main)/(tabs)');
+      return;
+    }
+
     router.replace('/(auth)/login');
   };
 
@@ -57,11 +65,11 @@ export default function SignupScreen() {
         <View>
           <Text variant="label" className="mb-3 text-text-secondary">Full Name</Text>
           <Card className="flex-row items-center rounded-2xl border border-border bg-surface px-4 py-4">
-            <User size={20} color={isLight ? '#000000' : '#FFFFFF'} className="mr-3" />
+            <User size={20} color={isLight ? CHOCOLATE_TRUFFLE_LIGHT.textPrimary : CHOCOLATE_TRUFFLE_DARK.textPrimary} className="mr-3" />
             <TextInput 
               className="flex-1 pl-1 text-on-surface text-base"
               placeholder={focusedField === 'fullName' ? '' : 'Julian Stark'}
-              placeholderTextColor={isLight ? '#000000' : '#FFFFFF'}
+              placeholderTextColor={isLight ? CHOCOLATE_TRUFFLE_LIGHT.textSecondary : CHOCOLATE_TRUFFLE_DARK.textSecondary}
               value={fullName}
               onChangeText={setFullName}
               editable={!loading}
@@ -74,11 +82,11 @@ export default function SignupScreen() {
         <View>
           <Text variant="label" className="mb-3 text-text-secondary">Email Address</Text>
           <Card className="flex-row items-center rounded-2xl border border-border bg-surface px-4 py-4">
-            <Mail size={20} color={isLight ? '#000000' : '#FFFFFF'} className="mr-3" />
+            <Mail size={20} color={isLight ? CHOCOLATE_TRUFFLE_LIGHT.textPrimary : CHOCOLATE_TRUFFLE_DARK.textPrimary} className="mr-3" />
             <TextInput 
               className="flex-1 pl-1 text-on-surface text-base"
               placeholder={focusedField === 'email' ? '' : 'name@example.com'}
-              placeholderTextColor={isLight ? '#000000' : '#FFFFFF'}
+              placeholderTextColor={isLight ? CHOCOLATE_TRUFFLE_LIGHT.textSecondary : CHOCOLATE_TRUFFLE_DARK.textSecondary}
               autoCapitalize="none"
               value={email}
               onChangeText={setEmail}
@@ -93,11 +101,11 @@ export default function SignupScreen() {
         <View>
           <Text variant="label" className="mb-3 text-text-secondary">Password</Text>
           <Card className="flex-row items-center rounded-2xl border border-border bg-surface px-4 py-4">
-            <Lock size={20} color={isLight ? '#000000' : '#FFFFFF'} className="mr-3" />
+            <Lock size={20} color={isLight ? CHOCOLATE_TRUFFLE_LIGHT.textPrimary : CHOCOLATE_TRUFFLE_DARK.textPrimary} className="mr-3" />
             <TextInput 
               className="flex-1 pl-1 text-on-surface text-base"
               placeholder={focusedField === 'password' ? '' : 'Minimum 8 characters'}
-              placeholderTextColor={isLight ? '#000000' : '#FFFFFF'}
+              placeholderTextColor={isLight ? CHOCOLATE_TRUFFLE_LIGHT.textSecondary : CHOCOLATE_TRUFFLE_DARK.textSecondary}
               secureTextEntry={!showPassword}
               value={password}
               onChangeText={setPassword}
@@ -112,7 +120,7 @@ export default function SignupScreen() {
             className="mt-3 flex-row items-center gap-3 self-start rounded-full border border-border bg-bg-elevated px-3 py-2"
           >
             <View className={`h-4 w-4 items-center justify-center rounded-[4px] border ${showPassword ? 'border-accent bg-accent' : 'border-border bg-transparent'}`}>
-              {showPassword ? <Check size={14} color={isLight ? '#000000' : '#FFFFFF'} strokeWidth={3} /> : null}
+              {showPassword ? <Check size={14} color={isLight ? CHOCOLATE_TRUFFLE_LIGHT.bgPrimary : CHOCOLATE_TRUFFLE_DARK.bgPrimary} strokeWidth={3} /> : null}
             </View>
             <Text size="sm" className="text-text-secondary">Show Password</Text>
           </Pressable>

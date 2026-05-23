@@ -25,7 +25,7 @@ export default function PaywallScreen() {
   const Feature = ({ icon: Icon, title, description }: any) => (
     <View className="flex-row items-center mb-6">
       <View className="w-12 h-12 rounded-2xl bg-bg-elevated items-center justify-center mr-4 border border-border">
-        <Icon size={24} color={isLight ? '#000000' : '#FFFFFF'} />
+        <Icon size={24} color={isLight ? '#1A1A1A' : '#FDFBD4'} />
       </View>
       <View className="flex-1">
         <Text weight="bold" size="lg">{title}</Text>
@@ -43,10 +43,10 @@ export default function PaywallScreen() {
             onPress={() => router.back()}
             className="absolute top-12 left-6 w-10 h-10 rounded-full bg-bg-elevated items-center justify-center border border-border"
           >
-            <X size={24} color={isLight ? '#000000' : '#FFFFFF'} />
+            <X size={24} color={isLight ? '#1A1A1A' : '#FDFBD4'} />
           </Pressable>
 
-          <Zap size={80} color={isLight ? '#000000' : '#FFFFFF'} />
+          <Zap size={80} color={isLight ? '#1A1A1A' : '#FDFBD4'} />
           <Text variant="display" className="mt-4 text-center">Go Elite.</Text>
         </View>
 

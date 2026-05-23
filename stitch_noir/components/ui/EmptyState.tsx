@@ -1,4 +1,4 @@
-import type { ComponentType, ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { View } from 'react-native';
 import { useAppStore } from '@/store/useAppStore';
 import { Text } from './Text';
@@ -6,7 +6,7 @@ import { Text } from './Text';
 type EmptyStateProps = {
   title: string;
   message: string;
-  icon?: ComponentType<{ size?: number; color?: string }>;
+  icon?: any;
   action?: ReactNode;
 };
 

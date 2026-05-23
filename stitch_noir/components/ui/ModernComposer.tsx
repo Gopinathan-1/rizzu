@@ -1,6 +1,7 @@
 import { ReactNode, useState } from 'react';
-import { TextInput, View, type TextInputProps } from 'react-native';
+import { Image, Pressable, Text as RNText, TextInput, View, type ImageSourcePropType, type TextInputProps } from 'react-native';
 import { useAppStore } from '@/store/useAppStore';
+import { CHOCOLATE_TRUFFLE_DARK, CHOCOLATE_TRUFFLE_LIGHT } from '@/theme/palette';
 
 type ModernComposerProps = {
   value: string;
@@ -9,6 +10,8 @@ type ModernComposerProps = {
   toolbarLeft?: ReactNode;
   toolbarCenter?: ReactNode;
   toolbarRight?: ReactNode;
+  attachmentPreview?: ImageSourcePropType | null;
+  onRemoveAttachment?: () => void;
   minHeight?: number;
   maxHeight?: number;
   containerClassName?: string;
@@ -23,19 +26,37 @@ export function ModernComposer({
   toolbarLeft,
   toolbarCenter,
   toolbarRight,
+  attachmentPreview,
+  onRemoveAttachment,
   minHeight = 76,
   maxHeight = 128,
-  containerClassName = 'w-full rounded-[32px] border border-border bg-surface px-4 p-4 pb-2 shadow-lg shadow-black/20',
+  containerClassName = 'w-full rounded-[32px] border border-border bg-surface px-4 p-4 pb-2 shadow-lg',
   inputClassName = 'px-1 py-0 text-base text-on-surface',
   inputProps,
 }: ModernComposerProps) {
   const [inputHeight, setInputHeight] = useState(minHeight);
   const [isFocused, setIsFocused] = useState(false);
   const themeMode = useAppStore((state) => state.themeMode);
-  const placeholderColor = themeMode === 'light' ? '#000000' : '#FFFFFF';
+  const placeholderColor = themeMode === 'light' ? CHOCOLATE_TRUFFLE_LIGHT.textSecondary : CHOCOLATE_TRUFFLE_DARK.textSecondary;
 
   return (
     <View className={containerClassName}>
+      {attachmentPreview ? (
+        <View className="mb-3 overflow-hidden rounded-[24px] border border-border bg-bg-elevated">
+          <View className="flex-row items-center justify-between px-3 py-2">
+            <RNText style={{ color: themeMode === 'light' ? CHOCOLATE_TRUFFLE_LIGHT.textSecondary : CHOCOLATE_TRUFFLE_DARK.textSecondary, fontSize: 12, fontWeight: '700', letterSpacing: 0.6, textTransform: 'uppercase' }}>
+              Attached image
+            </RNText>
+            {onRemoveAttachment ? (
+              <Pressable onPress={onRemoveAttachment} hitSlop={8} className="rounded-full border border-border bg-background px-2 py-1">
+                <RNText style={{ color: placeholderColor, fontSize: 12, fontWeight: '700' }}>Remove</RNText>
+              </Pressable>
+            ) : null}
+          </View>
+          <Image source={attachmentPreview} className="h-44 w-full" resizeMode="cover" />
+        </View>
+      ) : null}
+
       <TextInput
         value={value}
         onChangeText={onChangeText}

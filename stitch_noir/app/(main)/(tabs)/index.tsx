@@ -350,7 +350,7 @@ export default function HomeScreen() {
         </View>
         <View className="flex-row items-center gap-4">
             <Pressable className="p-2 rounded-lg active:bg-surface-high" onPress={() => router.push('/settings')}>
-            <Settings size={22} color={isLight ? '#000000' : '#FFFFFF'} />
+            <Settings size={22} color={isLight ? '#1A1A1A' : '#FDFBD4'} />
           </Pressable>
         </View>
       </View>
@@ -501,6 +501,8 @@ export default function HomeScreen() {
           value={conversation}
           onChangeText={setConversation}
           placeholder="Paste or type a conversation..."
+          attachmentPreview={screenshotAsset ? { uri: screenshotAsset.uri } : null}
+          onRemoveAttachment={screenshotAsset ? removeCurrentAttachment : undefined}
           inputClassName="text-base leading-6 text-on-surface"
           inputProps={{
             returnKeyType: 'default',
@@ -511,7 +513,7 @@ export default function HomeScreen() {
               onPress={handlePickScreenshot}
               className="h-11 w-11 items-center justify-center rounded-full border border-border bg-bg-surface active:bg-bg-elevated"
             >
-                <Paperclip size={22} color={isLight ? '#000000' : '#FFFFFF'} />
+                <Paperclip size={22} color={isLight ? '#1A1A1A' : '#FDFBD4'} />
             </Pressable>
           }
           toolbarRight={
@@ -525,13 +527,13 @@ export default function HomeScreen() {
                 justifyContent: 'center',
                 borderRadius: 999,
                 backgroundColor: analysisLoading
-                  ? isLight ? 'rgba(17,17,17,0.08)' : 'rgba(243,243,243,0.12)'
+                  ? isLight ? 'rgba(113,54,0,0.08)' : 'rgba(253,251,212,0.12)'
                   : conversation.trim() || screenshotAsset
-                    ? isLight ? '#111111' : '#F3F3F3'
-                    : isLight ? 'rgba(17,17,17,0.08)' : 'rgba(243,243,243,0.12)'
+                    ? isLight ? '#713600' : '#FDFBD4'
+                    : isLight ? 'rgba(113,54,0,0.08)' : 'rgba(253,251,212,0.12)'
               }}
             >
-                {analysisLoading ? <ActivityIndicator color={isLight ? '#111111' : '#111111'} /> : <ArrowUp size={18} color={conversation.trim() || screenshotAsset ? (isLight ? '#FFFFFF' : '#111111') : (isLight ? '#6B7280' : '#9CA3AF')} />}
+                {analysisLoading ? <ActivityIndicator color={isLight ? '#713600' : '#FDFBD4'} /> : <ArrowUp size={18} color={conversation.trim() || screenshotAsset ? (isLight ? '#FDFBD4' : '#38240D') : (isLight ? '#6B4A26' : '#C58C5A')} />}
             </Pressable>
           }
         />
@@ -565,14 +567,14 @@ export default function HomeScreen() {
                       onPress={() => setRefineTone(t)}
                       style={{
                         borderWidth: 1,
-                        borderColor: refineTone === t ? (isLight ? '#111111' : '#F3F3F3') : undefined,
-                        backgroundColor: refineTone === t ? (isLight ? '#111111' : '#F3F3F3') : undefined,
+                        borderColor: refineTone === t ? (isLight ? '#713600' : '#FDFBD4') : undefined,
+                        backgroundColor: refineTone === t ? (isLight ? '#713600' : '#FDFBD4') : undefined,
                         borderRadius: 999,
                         paddingHorizontal: 16,
                         paddingVertical: 8,
                       }}
                     >
-                      <Text style={refineTone === t ? { color: isLight ? '#FFFFFF' : '#111111' } : undefined}>{t}</Text>
+                      <Text style={refineTone === t ? { color: isLight ? '#FDFBD4' : '#38240D' } : undefined}>{t}</Text>
                     </Pressable>
                   ))}
                 </View>
@@ -589,13 +591,13 @@ export default function HomeScreen() {
                   borderRadius: 999,
                   paddingHorizontal: 16,
                   paddingVertical: 8,
-                  backgroundColor: isLight ? '#111111' : '#F3F3F3',
+                  backgroundColor: isLight ? '#713600' : '#FDFBD4',
                 }}
               >
                 {refineLoading ? (
-                  <ActivityIndicator color={isLight ? '#FFFFFF' : '#111111'} />
+                  <ActivityIndicator color={isLight ? '#FDFBD4' : '#38240D'} />
                 ) : (
-                  <Text weight="bold" style={{ color: isLight ? '#FFFFFF' : '#111111' }}>Apply</Text>
+                  <Text weight="bold" style={{ color: isLight ? '#FDFBD4' : '#38240D' }}>Apply</Text>
                 )}
               </Pressable>
             </View>

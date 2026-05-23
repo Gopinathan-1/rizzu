@@ -205,7 +205,7 @@ export default function MemoryScreen() {
             hitSlop={12}
             className="h-11 w-11 items-center justify-center rounded-full border border-outline-variant bg-background/30 active:bg-white/10"
           >
-            <ChevronLeft size={20} color={isLight ? '#000000' : '#FFFFFF'} />
+            <ChevronLeft size={20} color={isLight ? '#1A1A1A' : '#FDFBD4'} />
           </Pressable>
 
           <View className="items-center">
@@ -234,12 +234,12 @@ export default function MemoryScreen() {
           </View>
 
           <View className="flex-row items-center rounded-2xl border border-outline-variant bg-surface-container px-3">
-            <Search size={18} color={isLight ? '#000000' : '#FFFFFF'} />
+            <Search size={18} color={isLight ? '#1A1A1A' : '#FDFBD4'} />
             <TextInput
               value={searchText}
               onChangeText={setSearchText}
               placeholder="Search chats"
-              placeholderTextColor={isLight ? '#000000' : '#FFFFFF'}
+              placeholderTextColor={isLight ? '#6B4A26' : '#FDFBD4'}
               className="ml-2 flex-1 py-3 text-on-surface"
             />
           </View>

@@ -3,6 +3,7 @@ import { MessageSquare, Sparkles, UserCircle, ShieldCheck } from 'lucide-react-n
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppStore } from '@/store/useAppStore';
 import { View } from 'react-native';
+import { CHOCOLATE_TRUFFLE_DARK, CHOCOLATE_TRUFFLE_LIGHT } from '@/theme/palette';
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
@@ -10,10 +11,10 @@ export default function TabLayout() {
   const isLight = themeMode === 'light';
 
   // shades (avoid pure #000)
-  const activeLight = '#1A1A1A';
-  const activeDark = '#FFFFFF';
-  const inactiveLight = '#6B7280'; // gray-500
-  const inactiveDark = '#9CA3AF'; // lighter gray on dark
+  const activeLight = CHOCOLATE_TRUFFLE_LIGHT.textPrimary;
+  const activeDark = CHOCOLATE_TRUFFLE_DARK.textPrimary;
+  const inactiveLight = CHOCOLATE_TRUFFLE_LIGHT.textSecondary;
+  const inactiveDark = CHOCOLATE_TRUFFLE_DARK.textSecondary;
 
   return (
     <Tabs
@@ -21,8 +22,8 @@ export default function TabLayout() {
         tabBarActiveTintColor: isLight ? activeLight : activeDark,
         tabBarInactiveTintColor: isLight ? inactiveLight : inactiveDark,
         tabBarStyle: {
-          backgroundColor: isLight ? '#ffffff' : '#000000',
-          borderTopColor: isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.06)',
+          backgroundColor: isLight ? CHOCOLATE_TRUFFLE_LIGHT.bgPrimary : CHOCOLATE_TRUFFLE_DARK.bgPrimary,
+          borderTopColor: isLight ? CHOCOLATE_TRUFFLE_LIGHT.border : CHOCOLATE_TRUFFLE_DARK.border,
           height: 60 + (insets.bottom ?? 0),
           paddingBottom: (insets.bottom ?? 10),
           paddingTop: 10,
@@ -46,7 +47,7 @@ export default function TabLayout() {
                 borderRadius: 999,
                 alignItems: 'center',
                 justifyContent: 'center',
-                backgroundColor: focused ? (isLight ? 'rgba(26,26,26,0.06)' : 'rgba(255,255,255,0.12)') : 'transparent'
+                backgroundColor: focused ? (isLight ? CHOCOLATE_TRUFFLE_LIGHT.bgSurface : CHOCOLATE_TRUFFLE_DARK.bgSurface) : 'transparent'
               }}>
                 <MessageSquare size={22} color={color} />
               </View>
@@ -66,7 +67,7 @@ export default function TabLayout() {
                 borderRadius: 999,
                 alignItems: 'center',
                 justifyContent: 'center',
-                backgroundColor: focused ? (isLight ? 'rgba(26,26,26,0.06)' : 'rgba(255,255,255,0.12)') : 'transparent'
+                backgroundColor: focused ? (isLight ? CHOCOLATE_TRUFFLE_LIGHT.bgSurface : CHOCOLATE_TRUFFLE_DARK.bgSurface) : 'transparent'
               }}>
                 <Sparkles size={22} color={color} />
               </View>
@@ -86,7 +87,7 @@ export default function TabLayout() {
                 borderRadius: 999,
                 alignItems: 'center',
                 justifyContent: 'center',
-                backgroundColor: focused ? (isLight ? 'rgba(26,26,26,0.06)' : 'rgba(255,255,255,0.12)') : 'transparent'
+                backgroundColor: focused ? (isLight ? CHOCOLATE_TRUFFLE_LIGHT.bgSurface : CHOCOLATE_TRUFFLE_DARK.bgSurface) : 'transparent'
               }}>
                 <UserCircle size={22} color={color} />
               </View>

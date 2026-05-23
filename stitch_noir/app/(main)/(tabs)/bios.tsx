@@ -10,11 +10,12 @@ import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ModernComposer } from '@/components/ui/ModernComposer';
 import { Settings, Sparkles, Paperclip, ArrowUp, ChevronDown, Plus } from 'lucide-react-native';
-import { TONE_OPTIONS, normalizeToneName } from '@/lib/tonePrompts';
+import { getToneOptions, normalizeToneName } from '@/lib/tonePrompts';
 import { useAppStore } from '@/store/useAppStore';
 import { generateText } from '@/services/gemini';
 import { extractJson } from '@/services/geminiHelpers';
 import { CopyButton } from '@/components/tones/CopyButton';
+import { CHOCOLATE_TRUFFLE_DARK, CHOCOLATE_TRUFFLE_LIGHT } from '@/theme/palette';
 
 export default function BiosScreen() {
   const router = useRouter();
@@ -23,6 +24,8 @@ export default function BiosScreen() {
   const activeTone = useAppStore((state) => state.activeTone);
   const setActiveTone = useAppStore((state) => state.setActiveTone);
   const user = useAppStore((state) => state.user);
+  const toneProfile = useAppStore((state) => state.toneProfile);
+  const toneOptions = getToneOptions(toneProfile);
 
   const [bioInput, setBioInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -116,7 +119,7 @@ Return only valid JSON:
         </View>
         <View className="flex-row items-center gap-4">
           <Pressable className="p-2 rounded-lg active:bg-surface-high" onPress={() => router.push('/settings')}>
-            <Settings size={22} color={isLight ? '#000000' : '#FFFFFF'} />
+            <Settings size={22} color={isLight ? CHOCOLATE_TRUFFLE_LIGHT.textPrimary : CHOCOLATE_TRUFFLE_DARK.textPrimary} />
           </Pressable>
         </View>
       </View>
@@ -180,7 +183,7 @@ Return only valid JSON:
                   onPress={handlePickReference}
                   className="h-11 w-11 items-center justify-center rounded-full border border-border bg-bg-surface active:bg-bg-elevated"
                 >
-                  <Paperclip size={20} color={isLight ? '#000000' : '#FFFFFF'} />
+                  <Paperclip size={20} color={isLight ? '#1A1A1A' : '#FDFBD4'} />
                 </Pressable>
               }
               toolbarCenter={
@@ -188,9 +191,9 @@ Return only valid JSON:
                   onPress={() => setIsTonePickerOpen(true)}
                   className="flex-row items-center gap-2 rounded-full border border-border bg-accent/10 px-3 py-2 active:bg-white/10"
                 >
-                  <Sparkles size={16} color={isLight ? '#000000' : '#FFFFFF'} />
+                  <Sparkles size={16} color={isLight ? '#1A1A1A' : '#FDFBD4'} />
                   <Text size="sm" className="text-accent">{selectedTone}</Text>
-                  <ChevronDown size={14} color={isLight ? '#000000' : '#FFFFFF'} />
+                  <ChevronDown size={14} color={isLight ? CHOCOLATE_TRUFFLE_LIGHT.textPrimary : CHOCOLATE_TRUFFLE_DARK.textPrimary} />
                 </Pressable>
               }
               toolbarRight={
@@ -207,25 +210,25 @@ Return only valid JSON:
                     justifyContent: 'center',
                     borderRadius: 999,
                     backgroundColor: loading
-                      ? isLight ? 'rgba(17,17,17,0.08)' : 'rgba(243,243,243,0.12)'
+                      ? isLight ? CHOCOLATE_TRUFFLE_LIGHT.bgElevated : CHOCOLATE_TRUFFLE_DARK.bgElevated
                       : bioInput.trim()
-                        ? isLight ? '#111111' : '#F3F3F3'
-                        : isLight ? 'rgba(17,17,17,0.08)' : 'rgba(243,243,243,0.12)'
+                        ? isLight ? CHOCOLATE_TRUFFLE_LIGHT.accent : CHOCOLATE_TRUFFLE_DARK.accent
+                        : isLight ? CHOCOLATE_TRUFFLE_LIGHT.bgElevated : CHOCOLATE_TRUFFLE_DARK.bgElevated
                   }}
                 >
-                  {loading ? <ActivityIndicator color={isLight ? '#111111' : '#111111'} /> : <ArrowUp size={18} color={bioInput.trim() ? (isLight ? '#FFFFFF' : '#111111') : (isLight ? '#6B7280' : '#9CA3AF')} />}
+                  {loading ? <ActivityIndicator color={isLight ? CHOCOLATE_TRUFFLE_LIGHT.bgPrimary : CHOCOLATE_TRUFFLE_DARK.bgPrimary} /> : <ArrowUp size={18} color={bioInput.trim() ? CHOCOLATE_TRUFFLE_LIGHT.bgPrimary : (isLight ? CHOCOLATE_TRUFFLE_LIGHT.textSecondary : CHOCOLATE_TRUFFLE_DARK.textSecondary)} />}
                 </Pressable>
               }
             />
           </View>
 
                 <Modal visible={isTonePickerOpen} transparent animationType="fade" onRequestClose={() => setIsTonePickerOpen(false)}>
-                  <Pressable className="flex-1 justify-end bg-black/55 px-4 pb-6" onPress={() => setIsTonePickerOpen(false)}>
+                  <Pressable className="flex-1 justify-end bg-background/55 px-4 pb-6" onPress={() => setIsTonePickerOpen(false)}>
                     <Pressable className="overflow-hidden rounded-[28px] border border-border bg-surface p-4" onPress={(event) => event.stopPropagation()}>
                       <Text weight="bold" size="xl">Choose tone</Text>
                       <Text className="mt-1 text-on-surface-variant">Replies will follow the selected prompt style.</Text>
                       <View className="mt-4 gap-2">
-                                {TONE_OPTIONS.map((tone) => {
+                                {toneOptions.map((tone) => {
                                   const isSelected = tone === normalizeToneName(activeTone ?? 'Witty');
                                   return (
                                     <Pressable
@@ -235,12 +238,12 @@ Return only valid JSON:
                                         setIsTonePickerOpen(false);
                                       }}
                                       style={{
-                                        borderColor: isSelected ? (isLight ? '#111111' : '#F3F3F3') : undefined,
-                                        backgroundColor: isSelected ? (isLight ? '#111111' : '#F3F3F3') : undefined,
+                                        borderColor: isSelected ? CHOCOLATE_TRUFFLE_LIGHT.accent : undefined,
+                                        backgroundColor: isSelected ? CHOCOLATE_TRUFFLE_LIGHT.accent : undefined,
                                       }}
                                     >
-                                      <Text weight="semibold" className={isSelected ? (isLight ? 'text-background' : 'text-background') : 'text-text-secondary'} style={isSelected ? { color: isLight ? '#FFFFFF' : '#111111' } : undefined}>{tone}</Text>
-                                      {isSelected ? <Text size="xs" style={{ color: isLight ? '#FFFFFF' : '#111111' }}>Selected</Text> : null}
+                                      <Text weight="semibold" className={isSelected ? 'text-background' : 'text-text-secondary'} style={isSelected ? { color: CHOCOLATE_TRUFFLE_LIGHT.bgPrimary } : undefined}>{tone}</Text>
+                                      {isSelected ? <Text size="xs" style={{ color: CHOCOLATE_TRUFFLE_LIGHT.bgPrimary }}>Selected</Text> : null}
                                     </Pressable>
                                   );
                                 })}

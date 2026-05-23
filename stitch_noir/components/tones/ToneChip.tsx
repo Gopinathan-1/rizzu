@@ -1,6 +1,7 @@
 import { Pressable, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Text } from '@/components/ui/Text';
+import { CHOCOLATE_TRUFFLE_DARK, CHOCOLATE_TRUFFLE_LIGHT } from '@/theme/palette';
 
 interface ToneChipProps {
   label: string;
@@ -16,10 +17,11 @@ export function ToneChip({ label, active = false, onPress }: ToneChipProps) {
     >
       {active ? (
         <LinearGradient
-          colors={['rgba(160, 118, 42, 0.16)', 'rgba(160, 118, 42, 0.10)']}
+          colors={[CHOCOLATE_TRUFFLE_LIGHT.accentSubtle, CHOCOLATE_TRUFFLE_DARK.accentSubtle]}
           start={{ x: 0, y: 0.5 }}
           end={{ x: 1, y: 0.5 }}
-          className="px-3.5 py-2 rounded-full border border-border shadow-lg shadow-black/10"
+          className="px-3.5 py-2 rounded-full border border-border"
+          style={{ shadowColor: CHOCOLATE_TRUFFLE_DARK.accentGlow }}
         >
           <View>
             <Text weight="bold" className="text-accent tracking-tight">
@@ -28,7 +30,7 @@ export function ToneChip({ label, active = false, onPress }: ToneChipProps) {
           </View>
         </LinearGradient>
       ) : (
-        <View className="px-3.5 py-2 rounded-full bg-bg-elevated border border-border shadow-sm shadow-black/10 hover:bg-bg-elevated">
+        <View className="px-3.5 py-2 rounded-full bg-bg-elevated border border-border" style={{ shadowColor: CHOCOLATE_TRUFFLE_DARK.accentGlow }}>
           <Text size="sm" className="text-text-secondary tracking-tight">{label}</Text>
         </View>
       )}

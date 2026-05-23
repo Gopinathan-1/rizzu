@@ -8,6 +8,7 @@ import { useRouter } from 'expo-router';
 import { Mail, Lock, ArrowRight, Check } from 'lucide-react-native';
 import { useAppStore } from '@/store/useAppStore';
 import { authService } from '@/services/auth';
+import { CHOCOLATE_TRUFFLE_DARK, CHOCOLATE_TRUFFLE_LIGHT } from '@/theme/palette';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -52,11 +53,11 @@ export default function LoginScreen() {
         <View>
           <Text variant="label" className="mb-3 text-text-secondary">Email Address</Text>
           <Card className="bg-surface border border-border p-5 flex-row items-center rounded-2xl">
-            <Mail size={20} color={isLight ? '#000000' : '#FFFFFF'} className="mr-3" />
+            <Mail size={20} color={isLight ? CHOCOLATE_TRUFFLE_LIGHT.textPrimary : CHOCOLATE_TRUFFLE_DARK.textPrimary} className="mr-3" />
             <TextInput 
               className="flex-1 pl-1 text-on-surface text-base font-inter"
               placeholder={focusedField === 'email' ? '' : 'name@example.com'}
-              placeholderTextColor={isLight ? '#000000' : '#FFFFFF'}
+              placeholderTextColor={isLight ? CHOCOLATE_TRUFFLE_LIGHT.textSecondary : CHOCOLATE_TRUFFLE_DARK.textSecondary}
               autoCapitalize="none"
               keyboardType="email-address"
               value={email}
@@ -71,11 +72,11 @@ export default function LoginScreen() {
         <View>
           <Text variant="label" className="mb-3 text-text-secondary">Password</Text>
           <Card className="bg-surface border border-border p-5 flex-row items-center rounded-2xl">
-            <Lock size={20} color={isLight ? '#000000' : '#FFFFFF'} className="mr-3" />
+            <Lock size={20} color={isLight ? CHOCOLATE_TRUFFLE_LIGHT.textPrimary : CHOCOLATE_TRUFFLE_DARK.textPrimary} className="mr-3" />
             <TextInput 
               className="flex-1 pl-1 text-on-surface text-base font-inter"
               placeholder={focusedField === 'password' ? '' : '••••••••'}
-              placeholderTextColor={isLight ? '#000000' : '#FFFFFF'}
+              placeholderTextColor={isLight ? CHOCOLATE_TRUFFLE_LIGHT.textSecondary : CHOCOLATE_TRUFFLE_DARK.textSecondary}
               secureTextEntry={!showPassword}
               value={password}
               onChangeText={setPassword}
@@ -90,7 +91,7 @@ export default function LoginScreen() {
             className="mt-3 flex-row items-center gap-3 self-start rounded-full border border-border bg-bg-elevated px-3 py-2"
           >
             <View className={`h-4 w-4 items-center justify-center rounded-[4px] border ${showPassword ? 'border-accent bg-accent' : 'border-border bg-transparent'}`}>
-              {showPassword ? <Check size={14} color={isLight ? '#000000' : '#FFFFFF'} strokeWidth={3} /> : null}
+              {showPassword ? <Check size={14} color={isLight ? CHOCOLATE_TRUFFLE_LIGHT.bgPrimary : CHOCOLATE_TRUFFLE_DARK.bgPrimary} strokeWidth={3} /> : null}
             </View>
             <Text size="sm" className="text-text-secondary">Show Password</Text>
           </Pressable>
@@ -99,14 +100,14 @@ export default function LoginScreen() {
           </Pressable>
         </View>
 
-        <Pressable 
-          className="bg-accent h-16 rounded-2xl flex-row items-center justify-center mt-4 active:brightness-110 shadow-lg"
+        <Button
+          label={loading ? 'Logging In...' : 'Log In'}
+          icon={ArrowRight}
+          iconPosition="right"
+          className="mt-4 rounded-2xl py-5"
           onPress={handleLogin}
           disabled={loading}
-        >
-          <Text weight="bold" size="lg" className="text-background mr-2">{loading ? 'Logging In...' : 'Log In'}</Text>
-          <ArrowRight size={20} color={isLight ? '#000000' : '#FFFFFF'} />
-        </Pressable>
+        />
       </View>
 
       <View className="mt-16 mb-8 items-center">

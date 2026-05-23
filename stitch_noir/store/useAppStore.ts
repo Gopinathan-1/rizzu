@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
+import type { PersonalizedToneProfile } from '@/lib/tonePrompts';
 
 export type AnalysisResult = {
   tone: string;
@@ -29,6 +30,7 @@ type AppState = {
   isPremium: boolean;
   themeMode: 'light' | 'dark';
   activeTone: string;
+  toneProfile: PersonalizedToneProfile | null;
   activeChatId: string | null;
   currentAnalysis: AnalysisResult | null;
   vault: VaultItem[];
@@ -38,6 +40,7 @@ type AppState = {
   setPremium: (isPremium: boolean) => void;
   setThemeMode: (mode: AppState['themeMode']) => void;
   setActiveTone: (tone: string) => void;
+  setToneProfile: (profile: PersonalizedToneProfile | null) => void;
   setActiveChatId: (chatId: string | null) => void;
   setAnalysis: (analysis: AnalysisResult | null) => void;
   setTrendingToneExample: (tone: string, example: string) => void;
@@ -68,8 +71,9 @@ const storage = createJSONStorage(() => {
 const initialState = {
   user: null,
   isPremium: false,
-  themeMode: 'dark' as const,
+  themeMode: 'light' as const,
   activeTone: 'Witty',
+  toneProfile: null,
   activeChatId: null,
   currentAnalysis: null,
   vault: [],
@@ -85,6 +89,7 @@ export const useAppStore = create<AppState>()(
       setPremium: (isPremium) => set({ isPremium }),
       setThemeMode: (themeMode) => set({ themeMode }),
       setActiveTone: (tone) => set({ activeTone: tone }),
+      setToneProfile: (toneProfile) => set({ toneProfile }),
       setActiveChatId: (activeChatId) => set({ activeChatId }),
       setAnalysis: (analysis) => set({ currentAnalysis: analysis }),
       setTrendingToneExample: (tone, example) =>
@@ -114,6 +119,7 @@ export const useAppStore = create<AppState>()(
         isPremium: state.isPremium,
         themeMode: state.themeMode,
         activeTone: state.activeTone,
+        toneProfile: state.toneProfile,
         activeChatId: state.activeChatId,
         currentAnalysis: state.currentAnalysis,
         vault: state.vault,

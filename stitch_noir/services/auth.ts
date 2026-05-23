@@ -3,6 +3,7 @@ import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAppStore } from '@/store/useAppStore';
 import { clearRememberedSession, markSessionRemembered } from '@/services/sessionRemember';
+import type { PersonalizedToneProfile } from '@/lib/tonePrompts';
 
 const supabaseUrl =
   process.env.EXPO_PUBLIC_SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -44,7 +45,7 @@ export const authService = {
     }
   },
 
-  async signup(email: string, password: string, fullName: string) {
+  async signup(email: string, password: string, fullName: string, toneProfile?: PersonalizedToneProfile | null) {
     try {
       const client = getSupabaseClient();
       const { data, error } = await client.auth.signUp({
@@ -53,6 +54,8 @@ export const authService = {
         options: {
           data: {
             full_name: fullName,
+            preferred_tone: toneProfile?.primaryTone ?? null,
+            tone_profile: toneProfile ?? null,
           },
         },
       });

@@ -49,7 +49,7 @@ import {
 } from '@/services/chatWorkspace';
 import { generateText } from '@/services/gemini';
 import { getUploadContentKind, isSupportedUpload, type UploadSource } from '@/lib/file-processing';
-import { TONE_OPTIONS, getToneConversationPrompt, normalizeToneName, getToneHint } from '@/lib/tonePrompts';
+import { getToneOptions, getToneConversationPrompt, normalizeToneName, getToneHint } from '@/lib/tonePrompts';
 import { useAppStore } from '@/store/useAppStore';
 
 const MESSAGE_PAGE_SIZE = 30;
@@ -112,6 +112,7 @@ export default function TonesScreen() {
   const themeMode = useAppStore((state) => state.themeMode);
   const isLight = themeMode === 'light';
   const activeTone = useAppStore((state) => state.activeTone);
+  const toneProfile = useAppStore((state) => state.toneProfile);
   const activeChatId = useAppStore((state) => state.activeChatId);
   const setActiveTone = useAppStore((state) => state.setActiveTone);
   const setActiveChatId = useAppStore((state) => state.setActiveChatId);
@@ -141,6 +142,7 @@ export default function TonesScreen() {
   const messageCacheRef = useRef(new Map<string, WorkspaceMessage[]>());
   const uploadCacheRef = useRef(new Map<string, WorkspaceUpload[]>());
 
+  const toneOptions = useMemo(() => getToneOptions(toneProfile), [toneProfile]);
   const selectedTone = normalizeToneName(activeTone);
   const hasDraftText = draft.trim().length > 0;
 
@@ -616,7 +618,7 @@ export default function TonesScreen() {
                 hitSlop={12}
                 className="h-11 w-11 items-center justify-center rounded-full border border-border bg-bg-elevated/30 active:bg-bg-elevated"
               >
-                <Menu size={18} color={isLight ? '#000000' : '#FFFFFF'} />
+                <Menu size={18} color={isLight ? '#1A1A1A' : '#FDFBD4'} />
               </Pressable>
             ) : null}
           </View>
@@ -632,7 +634,7 @@ export default function TonesScreen() {
           </View>
           <View className="flex-row items-center gap-3">
             <Pressable className="p-2 rounded-lg active:bg-surface-high" onPress={() => router.push('/settings')}>
-              <Settings size={22} color={isLight ? '#000000' : '#FFFFFF'} />
+              <Settings size={22} color={isLight ? '#1A1A1A' : '#FDFBD4'} />
             </Pressable>
           </View>
         </View>
@@ -657,7 +659,7 @@ export default function TonesScreen() {
         <View className="flex-1 bg-background">
               {showInitialLoading ? (
                 <View className="flex-1 items-center justify-center px-8 py-12">
-                  <ActivityIndicator color={isLight ? '#000000' : '#FFFFFF'} size="large" />
+                  <ActivityIndicator color={isLight ? '#713600' : '#FDFBD4'} size="large" />
                 </View>
               ) : selectedChat ? (
               <KeyboardAvoidingView
@@ -674,7 +676,7 @@ export default function TonesScreen() {
                     </View>
                     <Pressable onPress={() => void handleNewChat()} className="rounded-full border border-border bg-bg-elevated px-3 py-2 active:bg-white/10">
                       <View className="flex-row items-center gap-2">
-                        <Plus size={14} color={isLight ? '#000000' : '#FFFFFF'} />
+                        <Plus size={14} color={isLight ? '#1A1A1A' : '#FDFBD4'} />
                         <Text size="sm">New chat</Text>
                       </View>
                     </Pressable>
@@ -697,7 +699,7 @@ export default function TonesScreen() {
                     ListHeaderComponent={
                       loadingMessages ? (
                           <View className="items-center py-8">
-                          <ActivityIndicator color={isLight ? '#000000' : '#FFFFFF'} />
+                          <ActivityIndicator color={isLight ? '#713600' : '#FDFBD4'} />
                         </View>
                       ) : null
                     }
@@ -758,7 +760,7 @@ export default function TonesScreen() {
                                     }}
                                     className="rounded-full p-2 active:bg-white/10"
                                   >
-                                    <Search size={14} color={isLight ? '#000000' : '#FFFFFF'} />
+                                    <Search size={14} color={isLight ? '#1A1A1A' : '#FDFBD4'} />
                                   </Pressable>
                                   <Pressable
                                     onPress={async () => {
@@ -786,7 +788,7 @@ export default function TonesScreen() {
                         </View>
                       </View>
                     ) : null}
-                              <ActivityIndicator color={isLight ? '#000000' : '#FFFFFF'} size="small" />
+                              <ActivityIndicator color={isLight ? '#713600' : '#FDFBD4'} size="small" />
                             </View>
                           ) : null}
                         {isStreaming ? (
@@ -834,7 +836,7 @@ export default function TonesScreen() {
                         onPress={handlePickUpload}
                         className="h-11 w-11 items-center justify-center rounded-full border border-border bg-bg-surface active:bg-bg-elevated"
                       >
-                        <Paperclip size={20} color={isLight ? '#000000' : '#FFFFFF'} />
+                        <Paperclip size={20} color={isLight ? '#1A1A1A' : '#FDFBD4'} />
                       </Pressable>
                     }
                     toolbarCenter={
@@ -842,9 +844,9 @@ export default function TonesScreen() {
                         onPress={() => setIsTonePickerOpen(true)}
                         className="flex-row items-center gap-2 rounded-full border border-border bg-bg-surface/10 px-3 py-2 active:bg-white/10"
                       >
-                        <Sparkles size={16} color={isLight ? 'rgba(0,0,0,0.4)' : '#FFFFFF'} />
+                        <Sparkles size={16} color={isLight ? 'rgba(113,54,0,0.6)' : '#FDFBD4'} />
                         <Text size="sm" className="text-on-surface">{selectedTone}</Text>
-                        <ChevronDown size={14} color={isLight ? 'rgba(0,0,0,0.4)' : '#FFFFFF'} />
+                        <ChevronDown size={14} color={isLight ? 'rgba(113,54,0,0.6)' : '#FDFBD4'} />
                       </Pressable>
                     }
                     toolbarRight={
@@ -858,16 +860,16 @@ export default function TonesScreen() {
                           justifyContent: 'center',
                           borderRadius: 999,
                           backgroundColor: isStreaming || loadingChats || isUploading
-                            ? isLight ? 'rgba(17,17,17,0.08)' : 'rgba(243,243,243,0.12)'
+                            ? isLight ? 'rgba(113,54,0,0.08)' : 'rgba(253,251,212,0.12)'
                             : hasDraftText
-                              ? isLight ? '#111111' : '#F3F3F3'
-                              : isLight ? 'rgba(17,17,17,0.08)' : 'rgba(243,243,243,0.12)'
+                              ? isLight ? '#713600' : '#FDFBD4'
+                              : isLight ? 'rgba(113,54,0,0.08)' : 'rgba(253,251,212,0.12)'
                         }}
                       >
                         {isStreaming ? (
-                          <ActivityIndicator color={isLight ? '#111111' : '#111111'} />
+                          <ActivityIndicator color={isLight ? '#713600' : '#FDFBD4'} />
                         ) : (
-                          <ArrowUp size={18} color={hasDraftText ? (isLight ? '#FFFFFF' : '#111111') : (isLight ? '#6B7280' : '#9CA3AF')} />
+                          <ArrowUp size={18} color={hasDraftText ? (isLight ? '#FDFBD4' : '#38240D') : (isLight ? '#6B4A26' : '#C58C5A')} />
                         )}
                       </Pressable>
                     }
@@ -899,7 +901,7 @@ export default function TonesScreen() {
                 value={renameValue}
                 onChangeText={setRenameValue}
                 placeholder="Chat title"
-                placeholderTextColor={isLight ? '#000000' : '#FFFFFF'}
+                placeholderTextColor={isLight ? '#6B4A26' : '#FDFBD4'}
                 className="mt-4 rounded-2xl border border-border bg-bg-surface px-4 py-3 text-text-primary"
               />
               <View className="mt-5 flex-row items-center justify-end gap-3">
@@ -921,7 +923,7 @@ export default function TonesScreen() {
               </View>
               <Text className="mb-3 text-on-surface-variant">Replies will follow the selected prompt style.</Text>
               <View className="flex-row flex-wrap gap-3">
-                {TONE_OPTIONS.map((tone) => {
+                {toneOptions.map((tone) => {
                   const isSelected = tone === selectedTone;
                   return (
                     <Pressable
@@ -932,12 +934,12 @@ export default function TonesScreen() {
                       }}
                       className="min-w-[120px] max-w-[48%] rounded-2xl border p-3"
                       style={{
-                        borderColor: isSelected ? (isLight ? '#111111' : '#F3F3F3') : undefined,
-                        backgroundColor: isSelected ? (isLight ? '#111111' : '#F3F3F3') : undefined,
+                        borderColor: isSelected ? (isLight ? '#713600' : '#FDFBD4') : undefined,
+                        backgroundColor: isSelected ? (isLight ? '#713600' : '#FDFBD4') : undefined,
                       }}
                     >
-                      <Text weight="semibold" style={{ color: isSelected ? (isLight ? '#FFFFFF' : '#111111') : (isLight ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.9)') }}>{tone}</Text>
-                      <Text size="xs" style={{ color: isSelected ? (isLight ? 'rgba(255,255,255,0.9)' : '#111111') : (isLight ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.72)') }} numberOfLines={2}>{getToneHint(tone)}</Text>
+                      <Text weight="semibold" style={{ color: isSelected ? (isLight ? '#FDFBD4' : '#38240D') : (isLight ? 'rgba(107,74,38,0.65)' : 'rgba(253,251,212,0.9)') }}>{tone}</Text>
+                      <Text size="xs" style={{ color: isSelected ? (isLight ? 'rgba(253,251,212,0.9)' : '#38240D') : (isLight ? 'rgba(107,74,38,0.65)' : 'rgba(253,251,212,0.72)') }} numberOfLines={2}>{getToneHint(tone)}</Text>
                     </Pressable>
                   );
                 })}

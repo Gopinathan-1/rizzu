@@ -8,6 +8,7 @@ import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { useAppStore } from '@/store/useAppStore';
 import { authService } from '@/services/auth';
 import { ChevronLeft, User, LogOut, ChevronRight } from 'lucide-react-native';
+import { CHOCOLATE_TRUFFLE_DARK, CHOCOLATE_TRUFFLE_LIGHT } from '@/theme/palette';
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -72,13 +73,13 @@ export default function SettingsScreen() {
     <Pressable onPress={onPress} className="flex-row items-center justify-between py-5 border-b border-outline-variant/30">
       <View className="flex-row items-center">
         <View className="w-10 h-10 rounded-full bg-surface-container-high items-center justify-center mr-4 border border-outline-variant/50">
-          <Icon size={20} color={color ?? (isLight ? '#000000' : '#FFFFFF')} />
+          <Icon size={20} color={color ?? (isLight ? CHOCOLATE_TRUFFLE_LIGHT.textPrimary : CHOCOLATE_TRUFFLE_DARK.textPrimary)} />
         </View>
         <Text weight="semibold" size="lg">{label}</Text>
       </View>
       <View className="flex-row items-center">
         {value ? <Text className="text-outline mr-2">{value}</Text> : null}
-        <ChevronRight size={20} color={isLight ? '#000000' : '#FFFFFF'} />
+        <ChevronRight size={20} color={isLight ? CHOCOLATE_TRUFFLE_LIGHT.textPrimary : CHOCOLATE_TRUFFLE_DARK.textPrimary} />
       </View>
     </Pressable>
   );
@@ -87,18 +88,18 @@ export default function SettingsScreen() {
     <ScreenContainer scrollable={false}>
       <View className="flex-row items-center py-4">
         <Pressable onPress={() => router.back()}>
-          <ChevronLeft size={24} color={isLight ? '#000000' : '#FFFFFF'} />
+          <ChevronLeft size={24} color={isLight ? CHOCOLATE_TRUFFLE_LIGHT.textPrimary : CHOCOLATE_TRUFFLE_DARK.textPrimary} />
         </Pressable>
         <Text variant="headline" className="ml-4">Settings</Text>
       </View>
 
       <Card className="mt-6 p-6 flex-row items-center bg-surface-container border border-outline-variant">
         <View className="w-16 h-16 rounded-full bg-background mr-4 border border-outline-variant overflow-hidden items-center justify-center">
-          <User size={28} color={isLight ? '#000000' : '#FFFFFF'} />
+          <User size={28} color={isLight ? CHOCOLATE_TRUFFLE_LIGHT.textPrimary : CHOCOLATE_TRUFFLE_DARK.textPrimary} />
         </View>
         <View className="flex-1">
           <Text weight="bold" size="xl">{user?.full_name ?? 'Your Profile'}</Text>
-          <Text className="text-outline text-xs font-bold tracking-widest uppercase">{user?.email ?? 'No email found'}</Text>
+          <Text className="text-xs font-bold tracking-widest uppercase" style={{ color: isLight ? CHOCOLATE_TRUFFLE_LIGHT.textSecondary : CHOCOLATE_TRUFFLE_DARK.textSecondary }}>{user?.email ?? 'No email found'}</Text>
         </View>
       </Card>
 
@@ -112,7 +113,7 @@ export default function SettingsScreen() {
             value={fullName}
             onChangeText={setFullName}
             placeholder="Full name"
-            placeholderTextColor={isLight ? '#000000' : '#FFFFFF'}
+            placeholderTextColor={isLight ? CHOCOLATE_TRUFFLE_LIGHT.textSecondary : CHOCOLATE_TRUFFLE_DARK.textSecondary}
             className="bg-surface-container-lowest border border-outline-variant rounded-2xl px-4 py-3 text-on-surface"
           />
           <Button
@@ -135,11 +136,11 @@ export default function SettingsScreen() {
                 paddingVertical: 12,
                 paddingHorizontal: 16,
                 borderWidth: 1,
-                backgroundColor: themeMode === 'light' ? '#F3F3F3' : 'transparent',
-                borderColor: themeMode === 'light' ? '#E5E7EB' : 'rgba(0,0,0,0.06)'
+                backgroundColor: themeMode === 'light' ? CHOCOLATE_TRUFFLE_LIGHT.accent : CHOCOLATE_TRUFFLE_DARK.bgElevated,
+                borderColor: themeMode === 'light' ? CHOCOLATE_TRUFFLE_LIGHT.border : CHOCOLATE_TRUFFLE_DARK.border
               }}
             >
-              <Text weight="semibold" style={{ color: themeMode === 'light' ? '#1A1A1A' : '#6B7280' }}>
+              <Text weight="semibold" style={{ color: themeMode === 'light' ? CHOCOLATE_TRUFFLE_LIGHT.bgPrimary : CHOCOLATE_TRUFFLE_DARK.textSecondary }}>
                 Light
               </Text>
             </Pressable>
@@ -151,11 +152,11 @@ export default function SettingsScreen() {
                 paddingVertical: 12,
                 paddingHorizontal: 16,
                 borderWidth: 1,
-                backgroundColor: themeMode === 'dark' ? '#1A1A1A' : 'transparent',
-                borderColor: themeMode === 'dark' ? '#111111' : 'rgba(0,0,0,0.06)'
+                backgroundColor: themeMode === 'dark' ? CHOCOLATE_TRUFFLE_DARK.accent : CHOCOLATE_TRUFFLE_LIGHT.bgElevated,
+                borderColor: themeMode === 'dark' ? CHOCOLATE_TRUFFLE_DARK.border : CHOCOLATE_TRUFFLE_LIGHT.border
               }}
             >
-              <Text weight="semibold" style={{ color: themeMode === 'dark' ? '#FFFFFF' : '#6B7280' }}>
+              <Text weight="semibold" style={{ color: themeMode === 'dark' ? CHOCOLATE_TRUFFLE_DARK.bgPrimary : CHOCOLATE_TRUFFLE_LIGHT.textSecondary }}>
                 Dark
               </Text>
             </Pressable>

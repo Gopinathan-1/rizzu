@@ -5,6 +5,7 @@ import { Text } from '@/components/ui/Text';
 import { ToneChip } from './ToneChip';
 import { ReplyCard } from './ReplyCard';
 import type { ConversationAnalysisResult } from '@/services/conversationAnalysis';
+import { CHOCOLATE_TRUFFLE_DARK, CHOCOLATE_TRUFFLE_LIGHT } from '@/theme/palette';
 
 interface ToneAnalysisPanelProps {
   analysis: ConversationAnalysisResult;
@@ -31,10 +32,11 @@ export function ToneAnalysisPanel({ analysis }: ToneAnalysisPanelProps) {
 
         <View className="relative gap-4">
           <LinearGradient
-            colors={['rgba(160,118,42,0.96)', 'rgba(160,118,42,0.82)']}
+            colors={[CHOCOLATE_TRUFFLE_LIGHT.accent, CHOCOLATE_TRUFFLE_DARK.accent]}
             start={{ x: 0, y: 0.5 }}
             end={{ x: 1, y: 0.5 }}
-            className="self-start rounded-full px-4 py-2 shadow-lg shadow-black/10"
+            className="self-start rounded-full px-4 py-2"
+            style={{ shadowColor: CHOCOLATE_TRUFFLE_DARK.accentGlow }}
           >
             <Text size="sm" weight="bold" className="text-background tracking-tight">
               {analysis.tone}

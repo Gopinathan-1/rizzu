@@ -12,6 +12,8 @@ import { supabase } from '@/services/auth';
 import { getRememberedSessionStatus, markSessionRemembered } from '@/services/sessionRemember';
 import { useAppStore } from '@/store/useAppStore';
 import { darkThemeVars, lightThemeVars } from '@/theme/tokens';
+import { normalizeToneName, type PersonalizedToneProfile } from '@/lib/tonePrompts';
+import { CHOCOLATE_TRUFFLE_DARK, CHOCOLATE_TRUFFLE_LIGHT } from '@/theme/palette';
 
 export {
   ErrorBoundary,
@@ -23,12 +25,12 @@ const AppDarkTheme = {
   ...DarkTheme,
   colors: {
     ...DarkTheme.colors,
-    primary: '#FFFFFF',
-    background: '#000000',
-    card: '#000000',
-    text: '#FFFFFF',
-    border: '#FFFFFF',
-    notification: '#FFFFFF',
+    primary: CHOCOLATE_TRUFFLE_DARK.accent,
+    background: CHOCOLATE_TRUFFLE_DARK.bgPrimary,
+    card: CHOCOLATE_TRUFFLE_DARK.bgSurface,
+    text: CHOCOLATE_TRUFFLE_DARK.textPrimary,
+    border: CHOCOLATE_TRUFFLE_DARK.border,
+    notification: CHOCOLATE_TRUFFLE_DARK.accent,
   },
 };
 
@@ -36,12 +38,12 @@ const AppLightTheme = {
   ...DefaultTheme,
   colors: {
     ...DefaultTheme.colors,
-    primary: '#000000',
-    background: '#FFFFFF',
-    card: '#FFFFFF',
-    text: '#000000',
-    border: '#000000',
-    notification: '#000000',
+    primary: CHOCOLATE_TRUFFLE_LIGHT.accent,
+    background: CHOCOLATE_TRUFFLE_LIGHT.bgPrimary,
+    card: CHOCOLATE_TRUFFLE_LIGHT.bgSurface,
+    text: CHOCOLATE_TRUFFLE_LIGHT.textPrimary,
+    border: CHOCOLATE_TRUFFLE_LIGHT.border,
+    notification: CHOCOLATE_TRUFFLE_LIGHT.accent,
   },
 };
 
@@ -56,6 +58,8 @@ export default function RootLayout() {
   const [authReady, setAuthReady] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const setUser = useAppStore((state) => state.setUser);
+  const setToneProfile = useAppStore((state) => state.setToneProfile);
+  const setActiveTone = useAppStore((state) => state.setActiveTone);
   const themeMode = useAppStore((state) => state.themeMode);
 
   useEffect(() => {
@@ -104,6 +108,9 @@ export default function RootLayout() {
       }
 
       if (isMounted) {
+        const toneProfile = nextSession?.user.user_metadata?.tone_profile as PersonalizedToneProfile | null | undefined;
+        const preferredTone = nextSession?.user.user_metadata?.preferred_tone as string | null | undefined;
+
         setIsLoggedIn(Boolean(nextSession));
         setUser(
           nextSession?.user
@@ -114,6 +121,12 @@ export default function RootLayout() {
               }
             : null
         );
+        if (nextSession) {
+          setToneProfile(toneProfile ?? null);
+          if (preferredTone || toneProfile?.primaryTone) {
+            setActiveTone(normalizeToneName(preferredTone ?? toneProfile?.primaryTone));
+          }
+        }
         setAuthReady(true);
       }
     };
@@ -133,6 +146,9 @@ export default function RootLayout() {
         }
       }
 
+      const toneProfile = nextSession?.user.user_metadata?.tone_profile as PersonalizedToneProfile | null | undefined;
+      const preferredTone = nextSession?.user.user_metadata?.preferred_tone as string | null | undefined;
+
       setIsLoggedIn(Boolean(nextSession));
       setUser(
         nextSession?.user
@@ -143,6 +159,12 @@ export default function RootLayout() {
             }
           : null
       );
+      if (nextSession) {
+        setToneProfile(toneProfile ?? null);
+        if (preferredTone || toneProfile?.primaryTone) {
+          setActiveTone(normalizeToneName(preferredTone ?? toneProfile?.primaryTone));
+        }
+      }
       setAuthReady(true);
     }).data.subscription;
 

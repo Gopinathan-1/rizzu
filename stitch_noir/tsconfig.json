@@ -3,6 +3,8 @@
   "compilerOptions": {
     "strict": true,
     "forceConsistentCasingInFileNames": true,
+    "ignoreDeprecations": "5.0",
+    "moduleResolution": "bundler",
     
     "paths": {
       "@/*": [

@@ -17,7 +17,8 @@ import * as Clipboard from 'expo-clipboard';
 import { addHistoryRecord, saveVaultRecord } from '@/services/appData';
 import { generateToneReplies } from '@/services/conversationAnalysis';
 import { useAppStore } from '@/store/useAppStore';
-import { normalizeToneName } from '@/lib/tonePrompts';
+import { getToneOptions, normalizeToneName } from '@/lib/tonePrompts';
+import { CHOCOLATE_TRUFFLE_DARK, CHOCOLATE_TRUFFLE_LIGHT } from '@/theme/palette';
 
 export default function ReplyGeneratorScreen() {
   const router = useRouter();
@@ -25,7 +26,9 @@ export default function ReplyGeneratorScreen() {
   const themeMode = useAppStore((state) => state.themeMode);
   const isLight = themeMode === 'light';
   const currentAnalysis = useAppStore((state) => state.currentAnalysis);
+  const toneProfile = useAppStore((state) => state.toneProfile);
   const addToVault = useAppStore((state) => state.addToVault);
+  const toneOptions = getToneOptions(toneProfile);
   const [selectedTone, setSelectedTone] = useState(normalizeToneName(activeTone || 'Savage'));
   const [context, setContext] = useState(currentAnalysis?.extractedText || '');
   const [loading, setLoading] = useState(false);
@@ -89,7 +92,7 @@ export default function ReplyGeneratorScreen() {
         <Text variant="headline" className="text-2xl tracking-tighter">Stitch Noir</Text>
         <View className="flex-row items-center gap-4">
           <Pressable className="p-2 rounded-lg active:bg-surface-high" onPress={() => router.push('/settings')}>
-            <Settings size={22} color={isLight ? '#000000' : '#FFFFFF'} />
+            <Settings size={22} color={isLight ? CHOCOLATE_TRUFFLE_LIGHT.textPrimary : CHOCOLATE_TRUFFLE_DARK.textPrimary} />
           </Pressable>
           <View className="w-8 h-8 rounded-full border border-outline-variant overflow-hidden">
             <Image
@@ -112,7 +115,7 @@ export default function ReplyGeneratorScreen() {
             value={context}
             onChangeText={setContext}
             placeholder="Paste or type conversation context..."
-            placeholderTextColor={isLight ? '#000000' : '#FFFFFF'}
+            placeholderTextColor={isLight ? CHOCOLATE_TRUFFLE_LIGHT.textSecondary : CHOCOLATE_TRUFFLE_DARK.textSecondary}
             className="min-h-[120px] text-on-surface font-inter text-base"
             textAlignVertical="top"
           />
@@ -130,16 +133,16 @@ export default function ReplyGeneratorScreen() {
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} className="-mx-5 px-5">
           <View className="flex-row gap-2">
-            {['Witty', 'Mysterious', 'Savage', 'Professional', 'Flirty'].map((tone) => (
+            {toneOptions.map((tone) => (
               <Pressable
                 key={tone}
                 onPress={() => setSelectedTone(tone)}
                 style={{
-                  borderColor: selectedTone === tone ? (isLight ? '#111111' : '#F3F3F3') : undefined,
-                  backgroundColor: selectedTone === tone ? (isLight ? '#111111' : '#F3F3F3') : undefined,
+                  borderColor: selectedTone === tone ? CHOCOLATE_TRUFFLE_LIGHT.accent : undefined,
+                  backgroundColor: selectedTone === tone ? CHOCOLATE_TRUFFLE_LIGHT.accent : undefined,
                 }}
               >
-                <Text weight="bold" size="sm" style={selectedTone === tone ? { color: isLight ? '#FFFFFF' : '#111111' } : undefined}>
+                <Text weight="bold" size="sm" style={selectedTone === tone ? { color: CHOCOLATE_TRUFFLE_LIGHT.bgPrimary } : undefined}>
                   {tone}
                 </Text>
               </Pressable>
@@ -156,7 +159,7 @@ export default function ReplyGeneratorScreen() {
           disabled={loading}
         />
 
-        {loading ? <ActivityIndicator color={isLight ? '#000000' : '#FFFFFF'} className="mt-4" /> : null}
+        {loading ? <ActivityIndicator color={isLight ? CHOCOLATE_TRUFFLE_LIGHT.textPrimary : CHOCOLATE_TRUFFLE_DARK.textPrimary} className="mt-4" /> : null}
 
         <ScrollView className="mt-6" contentContainerStyle={{ paddingBottom: 120 }}>
           <View className="gap-4">
@@ -168,13 +171,13 @@ export default function ReplyGeneratorScreen() {
                   </View>
                   <View className="flex-row items-center gap-3">
                     <Pressable onPress={() => handleCopy(reply)}>
-                      <Copy size={18} color={isLight ? '#000000' : '#FFFFFF'} />
+                      <Copy size={18} color={isLight ? CHOCOLATE_TRUFFLE_LIGHT.textPrimary : CHOCOLATE_TRUFFLE_DARK.textPrimary} />
                     </Pressable>
                     <Pressable onPress={() => handleSave(reply)}>
                       <Heart size={18} color="#C94040" />
                     </Pressable>
                     <Pressable onPress={handleGenerate}>
-                      <RotateCcw size={18} color={isLight ? '#000000' : '#FFFFFF'} />
+                      <RotateCcw size={18} color={isLight ? CHOCOLATE_TRUFFLE_LIGHT.textPrimary : CHOCOLATE_TRUFFLE_DARK.textPrimary} />
                     </Pressable>
                   </View>
                 </View>
@@ -182,7 +185,7 @@ export default function ReplyGeneratorScreen() {
                 <View className="mt-4 flex-row items-center justify-between border-t border-border pt-4">
                   <Text className="text-text-secondary text-xs">Tone: {normalizeToneName(selectedTone)}</Text>
                   <Pressable onPress={() => handleCopy(reply)} className="flex-row items-center gap-2">
-                    <Share2 size={16} color={isLight ? '#000000' : '#FFFFFF'} />
+                    <Share2 size={16} color={isLight ? CHOCOLATE_TRUFFLE_LIGHT.textPrimary : CHOCOLATE_TRUFFLE_DARK.textPrimary} />
                     <Text size="sm">Copy</Text>
                   </Pressable>
                 </View>
