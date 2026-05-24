@@ -18,6 +18,7 @@ import { Text } from '@/components/ui/Text';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { Button } from '@/components/ui/Button';
 import { ModernComposer } from '@/components/ui/ModernComposer';
+import { ThemedDialog } from '@/components/ui/ThemedDialog';
 import { ChatMessageBubble } from '@/components/tones/ChatMessageBubble';
 import { MemoryDrawer } from '@/components/tones/MemoryDrawer';
 import {
@@ -30,6 +31,8 @@ import {
   Search,
   UploadCloud,
   Menu,
+  AlertCircle,
+  Trash2,
 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { CHOCOLATE_TRUFFLE_DARK, CHOCOLATE_TRUFFLE_LIGHT } from '@/theme/palette';
@@ -142,6 +145,9 @@ export default function TonesScreen() {
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [uploadLabel, setUploadLabel] = useState('');
   const [pendingUploads, setPendingUploads] = useState<PendingUpload[]>([]);
+  const [deleteTarget, setDeleteTarget] = useState<{ kind: 'chat'; chat: WorkspaceChat } | { kind: 'upload'; upload: WorkspaceUpload } | null>(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [dialog, setDialog] = useState<{ title: string; message: string; tone: 'info' | 'success' | 'danger'; icon: typeof AlertCircle } | null>(null);
   const messageCacheRef = useRef(new Map<string, WorkspaceMessage[]>());
   const uploadCacheRef = useRef(new Map<string, WorkspaceUpload[]>());
 
@@ -199,7 +205,12 @@ export default function TonesScreen() {
         setActiveChatId(nextChats[0].id);
       }
     } catch (error) {
-      Alert.alert('Chats unavailable', error instanceof Error ? error.message : 'Could not load chats.');
+      setDialog({
+        title: 'Chats unavailable',
+        message: error instanceof Error ? error.message : 'Could not load chats.',
+        tone: 'danger',
+        icon: AlertCircle,
+      });
     } finally {
       setLoadingChats(false);
     }
@@ -229,7 +240,12 @@ export default function TonesScreen() {
       setUploads(nextUploads);
       setHasMoreMessages((messageResult.data ?? []).length === MESSAGE_PAGE_SIZE);
     } catch (error) {
-      Alert.alert('Conversation unavailable', error instanceof Error ? error.message : 'Could not load messages.');
+      setDialog({
+        title: 'Conversation unavailable',
+        message: error instanceof Error ? error.message : 'Could not load messages.',
+        tone: 'danger',
+        icon: AlertCircle,
+      });
     } finally {
       if (showLoading) {
         setLoadingMessages(false);
@@ -458,34 +474,59 @@ export default function TonesScreen() {
   }, [renameChat, renameValue, refreshChats]);
 
   const confirmDeleteChat = useCallback((chat: WorkspaceChat) => {
-    Alert.alert('Delete chat?', `Remove ${chat.title} and all of its messages?`, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            const { error } = await deleteWorkspaceChat(chat.id);
-            if (error) {
-              throw error;
-            }
+    setDeleteTarget({ kind: 'chat', chat });
+  }, []);
 
-            // refresh server-side list to reflect cascades and ordering
-            void refreshChats();
-            setUploads((current) => current.filter((upload) => upload.chat_id !== chat.id));
-            if (selectedChatId === chat.id) {
-              setSelectedChatId(null);
-              setActiveChatId(null);
-              setMessages([]);
-              setUploads([]);
-            }
-          } catch (deleteError) {
-            Alert.alert('Delete failed', deleteError instanceof Error ? deleteError.message : 'Could not delete the chat.');
-          }
-        },
-      },
-    ]);
-  }, [selectedChatId, refreshChats]);
+  const confirmDeleteUpload = useCallback((upload: WorkspaceUpload) => {
+    setDeleteTarget({ kind: 'upload', upload });
+  }, []);
+
+  const handleDeleteTarget = useCallback(async () => {
+    if (!deleteTarget || deleteBusy) {
+      return;
+    }
+
+    setDeleteBusy(true);
+    try {
+      if (deleteTarget.kind === 'chat') {
+        const { error } = await deleteWorkspaceChat(deleteTarget.chat.id);
+        if (error) {
+          throw error;
+        }
+
+        void refreshChats();
+        setUploads((current) => current.filter((upload) => upload.chat_id !== deleteTarget.chat.id));
+        if (selectedChatId === deleteTarget.chat.id) {
+          setSelectedChatId(null);
+          setActiveChatId(null);
+          setMessages([]);
+          setUploads([]);
+        }
+      } else {
+        const result = await removeWorkspaceUpload(deleteTarget.upload);
+        if (result.error) {
+          throw result.error;
+        }
+
+        if (selectedChatId) {
+          const uploadResult = await fetchWorkspaceUploads(selectedChatId);
+          setUploads(uploadResult.data ?? []);
+        }
+      }
+
+      setDeleteTarget(null);
+    } catch (deleteError) {
+      setDeleteTarget(null);
+      setDialog({
+        title: 'Delete failed',
+        message: deleteError instanceof Error ? deleteError.message : 'Could not delete the item.',
+        tone: 'danger',
+        icon: AlertCircle,
+      });
+    } finally {
+      setDeleteBusy(false);
+    }
+  }, [deleteBusy, deleteTarget, refreshChats, selectedChatId, setActiveChatId]);
 
   const handleLoadOlderMessages = useCallback(async () => {
     if (!selectedChatId || !hasMoreMessages || loadingOlder || messages.length === 0) {
@@ -763,18 +804,7 @@ export default function TonesScreen() {
                                     <Search size={14} color={isLight ? '#1A1A1A' : '#FDFBD4'} />
                                   </Pressable>
                                   <Pressable
-                                    onPress={async () => {
-                                      try {
-                                        const result = await removeWorkspaceUpload(upload);
-                                        if (result.error) {
-                                          throw result.error;
-                                        }
-                                        const uploadResult = await fetchWorkspaceUploads(selectedChatId);
-                                        setUploads(uploadResult.data ?? []);
-                                      } catch (error) {
-                                        Alert.alert('Delete upload failed', error instanceof Error ? error.message : 'Could not delete the upload.');
-                                      }
-                                    }}
+                                    onPress={() => confirmDeleteUpload(upload)}
                                     className="rounded-full p-2 active:bg-white/10"
                                   >
                                     <Text size="xs" className="text-error">
@@ -962,6 +992,48 @@ export default function TonesScreen() {
             </View>
           </TouchableWithoutFeedback>
         </Modal>
+
+        <ThemedDialog
+          visible={Boolean(deleteTarget)}
+          title={deleteTarget?.kind === 'upload' ? 'Delete upload?' : 'Delete chat?'}
+          message={
+            deleteTarget?.kind === 'upload'
+              ? `Remove ${deleteTarget.upload.filename} from this workspace?`
+              : deleteTarget
+                ? `Remove ${deleteTarget.chat.title} and all of its messages?`
+                : ''
+          }
+          tone="danger"
+          icon={Trash2}
+          primaryAction={{
+            label: deleteBusy ? 'Deleting...' : 'Delete',
+            onPress: () => void handleDeleteTarget(),
+            loading: deleteBusy,
+          }}
+          secondaryAction={{
+            label: 'Cancel',
+            onPress: () => setDeleteTarget(null),
+            disabled: deleteBusy,
+          }}
+          dismissible={!deleteBusy}
+          onRequestClose={() => {
+            if (!deleteBusy) {
+              setDeleteTarget(null);
+            }
+          }}
+        />
+
+        {dialog ? (
+          <ThemedDialog
+            visible={Boolean(dialog)}
+            title={dialog.title}
+            message={dialog.message}
+            tone={dialog.tone}
+            icon={dialog.icon}
+            primaryAction={{ label: 'OK', onPress: () => setDialog(null) }}
+            onRequestClose={() => setDialog(null)}
+          />
+        ) : null}
       </View>
     </ScreenContainer>
   );

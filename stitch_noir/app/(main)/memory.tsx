@@ -1,10 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, Pressable, TextInput, Alert, useWindowDimensions } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ChevronLeft, Plus, Search } from 'lucide-react-native';
+import { ChevronLeft, Plus, Search, AlertCircle, Trash2 } from 'lucide-react-native';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
+import { ThemedDialog } from '@/components/ui/ThemedDialog';
 import { ChatSidebar } from '@/components/tones/ChatSidebar';
 import {
   createWorkspaceChat,
@@ -19,6 +20,13 @@ import { useAppStore } from '@/store/useAppStore';
 type ChatGroup = {
   label: string;
   items: WorkspaceChat[];
+};
+
+type DialogState = {
+  title: string;
+  message: string;
+  tone: 'info' | 'success' | 'danger';
+  icon: typeof AlertCircle;
 };
 
 function groupChatsByRecency(chats: WorkspaceChat[]): ChatGroup[] {
@@ -70,6 +78,9 @@ export default function MemoryScreen() {
   const [chats, setChats] = useState<WorkspaceChat[]>([]);
   const [selectedChatId, setSelectedChatId] = useState<string | null>(activeChatId);
   const [loading, setLoading] = useState(true);
+  const [deleteTarget, setDeleteTarget] = useState<WorkspaceChat | null>(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [dialog, setDialog] = useState<DialogState | null>(null);
 
   const chatsByGroup = useMemo(() => groupChatsByRecency(chats), [chats]);
 
@@ -95,7 +106,12 @@ export default function MemoryScreen() {
         setActiveChatId(nextChats[0].id);
       }
     } catch (error) {
-      Alert.alert('Chats unavailable', error instanceof Error ? error.message : 'Could not load chats.');
+      setDialog({
+        title: 'Chats unavailable',
+        message: error instanceof Error ? error.message : 'Could not load chats.',
+        tone: 'danger',
+        icon: AlertCircle,
+      });
     } finally {
       setLoading(false);
     }
@@ -165,30 +181,39 @@ export default function MemoryScreen() {
   }, []);
 
   const handleDeleteChat = useCallback((chat: WorkspaceChat) => {
-    Alert.alert('Delete chat?', `Remove ${chat.title} and all of its messages?`, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            const { error } = await deleteWorkspaceChat(chat.id);
-            if (error) {
-              throw error;
-            }
+    setDeleteTarget(chat);
+  }, []);
 
-            setChats((current) => current.filter((item) => item.id !== chat.id));
-            if (selectedChatId === chat.id) {
-              setSelectedChatId(null);
-              setActiveChatId(null);
-            }
-          } catch (error) {
-            Alert.alert('Delete failed', error instanceof Error ? error.message : 'Could not delete the chat.');
-          }
-        },
-      },
-    ]);
-  }, [selectedChatId, setActiveChatId]);
+  const confirmDeleteChat = useCallback(async () => {
+    if (!deleteTarget || deleteBusy) {
+      return;
+    }
+
+    setDeleteBusy(true);
+    try {
+      const { error } = await deleteWorkspaceChat(deleteTarget.id);
+      if (error) {
+        throw error;
+      }
+
+      setChats((current) => current.filter((item) => item.id !== deleteTarget.id));
+      if (selectedChatId === deleteTarget.id) {
+        setSelectedChatId(null);
+        setActiveChatId(null);
+      }
+      setDeleteTarget(null);
+    } catch (error) {
+      setDeleteTarget(null);
+      setDialog({
+        title: 'Delete failed',
+        message: error instanceof Error ? error.message : 'Could not delete the chat.',
+        tone: 'danger',
+        icon: AlertCircle,
+      });
+    } finally {
+      setDeleteBusy(false);
+    }
+  }, [deleteBusy, deleteTarget, selectedChatId, setActiveChatId]);
 
   const handleSelectChat = useCallback((chatId: string) => {
     setSelectedChatId(chatId);
@@ -261,6 +286,42 @@ export default function MemoryScreen() {
 
           {loading ? null : null}
         </View>
+
+        <ThemedDialog
+          visible={Boolean(deleteTarget)}
+          title="Delete chat?"
+          message={deleteTarget ? `Remove ${deleteTarget.title} and all of its messages?` : ''}
+          tone="danger"
+          icon={Trash2}
+          primaryAction={{
+            label: deleteBusy ? 'Deleting...' : 'Delete',
+            onPress: () => void confirmDeleteChat(),
+            loading: deleteBusy,
+          }}
+          secondaryAction={{
+            label: 'Cancel',
+            onPress: () => setDeleteTarget(null),
+            disabled: deleteBusy,
+          }}
+          dismissible={!deleteBusy}
+          onRequestClose={() => {
+            if (!deleteBusy) {
+              setDeleteTarget(null);
+            }
+          }}
+        />
+
+        {dialog ? (
+          <ThemedDialog
+            visible={Boolean(dialog)}
+            title={dialog.title}
+            message={dialog.message}
+            tone={dialog.tone}
+            icon={dialog.icon}
+            primaryAction={{ label: 'OK', onPress: () => setDialog(null) }}
+            onRequestClose={() => setDialog(null)}
+          />
+        ) : null}
       </View>
     </ScreenContainer>
   );

@@ -1,14 +1,25 @@
 import React, { useState } from 'react';
-import { View, TextInput, Pressable, Alert } from 'react-native';
+import { View, TextInput, Pressable } from 'react-native';
 import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
+import { ThemedDialog } from '@/components/ui/ThemedDialog';
 import { useRouter } from 'expo-router';
-import { Mail, Lock, ArrowRight, Check } from 'lucide-react-native';
+import { Mail, Lock, ArrowRight, Check, AlertCircle, CircleCheckBig } from 'lucide-react-native';
 import { useAppStore } from '@/store/useAppStore';
 import { authService } from '@/services/auth';
 import { CHOCOLATE_TRUFFLE_DARK, CHOCOLATE_TRUFFLE_LIGHT } from '@/theme/palette';
+
+type DialogState = {
+  title: string;
+  message: string;
+  tone: 'info' | 'success' | 'danger';
+  icon: typeof AlertCircle;
+  actionLabel: string;
+  onAction: () => void;
+  dismissible?: boolean;
+};
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -19,10 +30,20 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [focusedField, setFocusedField] = useState<'email' | 'password' | null>(null);
+  const [dialog, setDialog] = useState<DialogState | null>(null);
+
+  const closeDialog = () => setDialog(null);
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert('Error', 'Please fill in all fields');
+      setDialog({
+        title: 'Missing details',
+        message: 'Please fill in all fields before logging in.',
+        tone: 'danger',
+        icon: AlertCircle,
+        actionLabel: 'OK',
+        onAction: closeDialog,
+      });
       return;
     }
 
@@ -31,12 +52,29 @@ export default function LoginScreen() {
     setLoading(false);
 
     if (error) {
-      Alert.alert('Login Failed', (error as any)?.message || 'Invalid email or password');
+      setDialog({
+        title: 'Login failed',
+        message: (error as any)?.message || 'Invalid email or password.',
+        tone: 'danger',
+        icon: AlertCircle,
+        actionLabel: 'Try again',
+        onAction: closeDialog,
+      });
       return;
     }
 
-    Alert.alert('Success', 'Welcome back!');
-    router.replace('/(main)/(tabs)');
+    setDialog({
+      title: 'Welcome back',
+      message: 'Your workspace is ready.',
+      tone: 'success',
+      icon: CircleCheckBig,
+      actionLabel: 'Continue',
+      onAction: () => {
+        closeDialog();
+        router.replace('/(main)/(tabs)');
+      },
+      dismissible: false,
+    });
   };
 
   return (
@@ -90,7 +128,7 @@ export default function LoginScreen() {
             disabled={loading}
             className="mt-3 flex-row items-center gap-3 self-start rounded-full border border-border bg-bg-elevated px-3 py-2"
           >
-            <View className={`h-4 w-4 items-center justify-center rounded-[4px] border ${showPassword ? 'border-accent bg-accent' : 'border-border bg-transparent'}`}>
+            <View className={`h-4 w-4 items-center justify-center rounded-[4px] border ${showPassword ? 'border-accent bg-accent' : 'border-border bg-white'}`}>
               {showPassword ? <Check size={14} color={isLight ? CHOCOLATE_TRUFFLE_LIGHT.bgPrimary : CHOCOLATE_TRUFFLE_DARK.bgPrimary} strokeWidth={3} /> : null}
             </View>
             <Text size="sm" className="text-text-secondary">Show Password</Text>
@@ -115,6 +153,19 @@ export default function LoginScreen() {
           <Text className="text-text-secondary font-inter">Don't have an account? <Text className="text-accent font-inter-bold">Sign Up</Text></Text>
         </Pressable>
       </View>
+
+      {dialog ? (
+        <ThemedDialog
+          visible={Boolean(dialog)}
+          title={dialog.title}
+          message={dialog.message}
+          tone={dialog.tone}
+          icon={dialog.icon}
+          primaryAction={{ label: dialog.actionLabel, onPress: dialog.onAction }}
+          dismissible={dialog.dismissible ?? true}
+          onRequestClose={closeDialog}
+        />
+      ) : null}
     </ScreenContainer>
   );
 }
