@@ -42,3 +42,7 @@ yarn-error.*
 
 #env
 .env
+!.env.local.example
+
+# Allow committing example env files while still ignoring real envs
+!.env.example
